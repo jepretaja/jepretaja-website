@@ -40,8 +40,20 @@ export async function createPaymentOrder(req) {
       .where('status', '==', 'awaiting_transfer');
     const ada = await tx.get(adaQ);
     if (!ada.empty) {
-      const lama = ada.docs[0].data();
-      return { paymentId: ada.docs[0].id, ...lama, reused: true };
+      const paymentDoc = ada.docs[0];
+      const lama = paymentDoc.data();
+      const expiresAtMillis = lama.expiresAt?.toMillis?.() ?? new Date(lama.expiresAt || 0).getTime();
+      if (expiresAtMillis > Date.now()) {
+        return { paymentId: paymentDoc.id, ...lama, reused: true };
+      }
+
+      // Jangan mengembalikan instruksi transfer yang sudah kedaluwarsa.
+      // Tandai order lama agar riwayat pembayaran tetap audit-able, lalu
+      // lanjutkan membuat instruksi baru dalam transaksi yang sama.
+      tx.update(paymentDoc.ref, {
+        status: 'expired',
+        expiredAt: FieldValue.serverTimestamp(),
+      });
     }
 
     // settings/general — dokumen yang sama dengan form Pengaturan di panel
