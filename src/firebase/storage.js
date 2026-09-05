@@ -17,9 +17,14 @@ import { app } from './config';
  * bagi pengguna, tombol "pilih foto" tetap bekerja di kedua keadaan.
  */
 
-/** Bucket belum diisi di .env — tidak ada gunanya mencoba menghubunginya. */
+/**
+ * Firebase Storage sengaja nonaktif secara default. APK memakai Cloudinary,
+ * sedangkan website menyimpan gambar kecil langsung di dokumen Firestore.
+ * Bucket hanya dipakai bila diaktifkan secara eksplisit.
+ */
 export function storageTersedia() {
-  return Boolean(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET);
+  return import.meta.env.VITE_USE_FIREBASE_STORAGE === 'true'
+    && Boolean(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET);
 }
 
 /**
