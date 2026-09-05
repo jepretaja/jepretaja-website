@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Jalur yang boleh dibagikan lewat FileProvider.
+
+  Hanya cache aplikasi: hasil rekaman kamera dan frame sampul video bersifat
+  sementara, dan menaruhnya di cache berarti sistem boleh membersihkannya
+  sendiri saat ruang menipis, tanpa perlu kode pembersih tersendiri.
+-->
+<paths>
+    <cache-path name="cache_capture" path="." />
+    <files-path name="files_capture" path="." />
+</paths>

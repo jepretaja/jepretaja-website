@@ -1,0 +1,5 @@
+<resources>
+    <!-- Splash sengaja tetap biru brand di kedua mode (identitas konsisten). -->
+    <color name="splash_background">#2F6FED</color>
+    <color name="window_background">#0F1115</color>
+</resources>

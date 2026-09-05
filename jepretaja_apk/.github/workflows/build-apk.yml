@@ -1,0 +1,79 @@
+name: Build APK
+
+# Jalan otomatis tiap push ke main, atau manual lewat tab "Actions" di GitHub.
+# APK hasil build muncul di: Actions > run terakhir > bagian "Artifacts".
+#
+# GitHub Actions gratis untuk repository publik (dan 2.000 menit/bulan untuk
+# repository privat) — cukup untuk membangun APK ini berkali-kali tanpa biaya.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # google-services.json berisi kredensial Firebase — JANGAN commit ke repo.
+      # Simpan sebagai GitHub Secret bernama GOOGLE_SERVICES_JSON:
+      #   1. Di komputer: base64 -w0 google-services.json   (macOS: base64 -i google-services.json)
+      #   2. Salin hasilnya
+      #   3. Tempel di Settings > Secrets and variables > Actions > New repository secret
+      - name: Cek secret GOOGLE_SERVICES_JSON
+        env:
+          GS: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GS" ]; then
+            echo "::error::Secret GOOGLE_SERVICES_JSON belum diisi. Build tidak bisa lanjut."
+            echo "Buka Settings > Secrets and variables > Actions, tambahkan secret bernama"
+            echo "GOOGLE_SERVICES_JSON berisi hasil base64 dari file google-services.json."
+            exit 1
+          fi
+
+      - name: Inject google-services.json dari secret
+        env:
+          GS: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          echo "$GS" | base64 -d > app/google-services.json
+          # Validasi hasil decode, supaya kegagalan terlihat di sini dan bukan
+          # berupa error Gradle yang membingungkan beberapa menit kemudian.
+          python3 -c "import json,sys; json.load(open('app/google-services.json'))" \
+            || { echo "::error::Hasil decode bukan JSON valid. Pastikan secret berisi base64 tanpa baris baru."; exit 1; }
+          echo "google-services.json OK"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Cloudinary menggantikan Firebase Storage untuk upload foto/video.
+      # Keduanya bukan rahasia (cloud name & nama unsigned preset memang
+      # terlihat dari sisi klien), tapi disimpan sebagai secret supaya mudah
+      # diganti tanpa mengubah kode.
+      - name: Build Debug APK
+        env:
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_UPLOAD_PRESET: ${{ secrets.CLOUDINARY_UPLOAD_PRESET }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: |
+          if [ -z "$CLOUDINARY_CLOUD_NAME" ] || [ -z "$CLOUDINARY_UPLOAD_PRESET" ]; then
+            echo "::warning::Secret Cloudinary belum diisi. APK tetap jadi, tapi upload foto/video akan gagal saat dipakai."
+          fi
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::warning::Secret API_BASE_URL belum diisi. APK akan dibuat, tetapi fitur server belum dapat dipakai."
+          fi
+          chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jepretaja-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30

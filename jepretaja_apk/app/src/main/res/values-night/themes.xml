@@ -1,0 +1,9 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Varian mode gelap. Tanpa file ini, Theme.JepretAja tetap memakai
+         induk *.Light* sehingga windowBackground putih berkedip sesaat
+         sebelum Compose tampil — terlihat jelas & murah di HP mode gelap. -->
+    <style name="Theme.JepretAja" parent="android:Theme.Material.NoActionBar" />
+    <style name="Theme.JepretAja.Splash" parent="Theme.JepretAja">
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
+</resources>

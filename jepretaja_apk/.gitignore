@@ -1,0 +1,20 @@
+*.iml
+.gradle/
+/local.properties
+.idea/
+.DS_Store
+/build
+app/build/
+/captures
+.externalNativeBuild
+.cxx
+app/google-services.json
+app/release/
+
+# Kunci penandatanganan rilis — JANGAN PERNAH masuk repositori.
+# Bocornya kunci ini berarti orang lain bisa menerbitkan pembaruan palsu atas
+# nama aplikasi ini; hilangnya berarti TIDAK ADA LAGI yang bisa menerbitkan
+# pembaruan sama sekali (Google Play mengikat aplikasi ke satu kunci selamanya).
+keystore.properties
+*.jks
+*.keystore
