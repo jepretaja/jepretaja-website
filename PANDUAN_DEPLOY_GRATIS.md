@@ -66,11 +66,35 @@ Setelah ini, admin berikutnya cukup diundang lewat halaman **Admin Users** di we
 
 ---
 
-## Bagian 2 — Website ke Vercel (10 menit)
+## Bagian 2 — Website ke GitHub dan Vercel (10 menit)
 
-1. Push folder `jepretaja_admin` ke GitHub (repo boleh privat, tetap gratis).
-2. Buka [vercel.com](https://vercel.com) → **Sign up with GitHub** → **Add New → Project** → pilih repo tadi.
-3. Vercel otomatis mendeteksi Vite. Kalau `jepretaja_admin` bukan folder root repo, isi **Root Directory** ke `jepretaja_admin`.
+### A. Unggah source code website ke GitHub
+
+Gunakan folder website yang berisi `package.json`, `src`, `api`, dan `vercel.json`.
+Pada Windows PowerShell, jalankan perintah berikut dari folder tersebut:
+
+```powershell
+git init
+git branch -M main
+git add .
+git commit -m "Initial website upload"
+git remote add origin https://github.com/USERNAME/NAMA-REPO-WEBSITE.git
+git push -u origin main
+```
+
+Sebelumnya, buat repository kosong di GitHub (**New repository**). Jangan centang
+opsi pembuatan README atau `.gitignore` jika source code lokal sudah memiliki
+file-file tersebut. Jika repository lokal sudah memakai Git, lewati `git init`
+dan `git branch -M main`, lalu periksa alamat remote dengan `git remote -v`.
+
+Sebelum `git add .`, pastikan file rahasia tidak ikut terunggah. Service account
+Firebase, `.env`, dan private key tidak boleh masuk repository. Variabel `VITE_*`
+boleh berisi konfigurasi client Firebase, tetapi bukan kredensial server.
+
+### B. Hubungkan repository ke Vercel
+
+1. Buka [vercel.com](https://vercel.com) → **Sign up with GitHub** → **Add New → Project** → pilih repository tadi.
+2. Vercel otomatis mendeteksi Vite. Jika repository berisi beberapa proyek, isi **Root Directory** dengan folder yang berisi `package.json` website.
 4. Buka **Environment Variables**, isi semuanya (nilai dari Bagian 1 langkah 4):
 
 ```
@@ -92,7 +116,8 @@ Isinya seluruh isi file JSON service account dari Bagian 1 langkah 5 — buka fi
 
 > Perhatikan: nama variabel ini **tidak** diawali `VITE_`. Itu disengaja. Variabel berawalan `VITE_` ikut terbundel ke dalam file JavaScript yang diunduh browser — kalau service account key ikut ke sana, siapa pun bisa mengambil kendali penuh atas database Anda.
 
-5. Klik **Deploy**. Selesai — website hidup di `https://nama-project-anda.vercel.app` dan bisa dibuka siapa saja dari mana saja.
+5. Klik **Deploy**. Vercel akan menjalankan build dan memberikan URL publik seperti `https://nama-project-anda.vercel.app`.
+6. Setiap `git push origin main` berikutnya memicu deployment baru secara otomatis. Pull request juga dapat memperoleh Preview Deployment.
 
 ### Setelah deploy
 
@@ -179,6 +204,78 @@ Anda tidak perlu menginstal Android Studio. Build berjalan di server GitHub, gra
 6. Kirim file `app-debug.apk` ke HP, aktifkan "Install dari sumber tidak dikenal", pasang.
 
 APK debug bisa langsung dipasang dan dibagikan ke siapa saja. Untuk masuk Play Store nanti perlu APK/AAB release yang ditandatangani (dan biaya pendaftaran developer Google Play sekali seumur hidup — di luar cakupan gratis ini).
+
+---
+
+## Bagian 6 — Publikasikan APK melalui GitHub Releases
+
+Artifact pada GitHub Actions hanya untuk penyimpanan sementara dan biasanya
+memiliki masa retensi. Agar pengguna memiliki tautan unduhan yang stabil,
+unggah APK sebagai **asset** pada GitHub Release.
+
+### A. Siapkan APK
+
+1. Jalankan workflow **Actions → Build APK → Run workflow**, atau push ke branch
+   `main` dan tunggu sampai job selesai tanpa error.
+2. Buka run yang berhasil → **Artifacts** → unduh `jepretaja-debug-apk`.
+3. Ekstrak ZIP artifact dan ubah nama file menjadi nama yang jelas, misalnya
+   `jepretaja-1.0.0-debug.apk`. Untuk distribusi publik, lebih baik gunakan APK
+   release yang sudah ditandatangani keystore pribadi; jangan memakai APK yang
+   belum selesai diuji.
+
+### B. Buat Release dan unggah APK
+
+1. Buka halaman repository GitHub → **Releases** → **Draft a new release**.
+2. Isi **Choose a tag** dengan tag baru, misalnya `v1.0.0`, lalu pilih **Create new tag**.
+3. Isi judul, misalnya `JepretAja Android v1.0.0`, tulis catatan perubahan, dan
+   tarik file APK ke area **Attach binaries** atau pilih file tersebut.
+4. Klik **Publish release**. Jangan mengunggah APK ke kolom source code atau
+   menjadikan file APK sebagai commit biasa; file harus terlihat di bagian
+   **Assets** release.
+
+### C. Salin direct link APK
+
+Untuk release tertentu, pola URL langsungnya adalah:
+
+```text
+https://github.com/USERNAME/NAMA-REPO/releases/download/v1.0.0/jepretaja-1.0.0-debug.apk
+```
+
+Untuk selalu mengarah ke release terbaru, gunakan:
+
+```text
+https://github.com/USERNAME/NAMA-REPO/releases/latest/download/jepretaja-1.0.0-debug.apk
+```
+
+Nama file pada URL harus sama persis dengan nama asset di GitHub. Jika nama APK
+berubah setiap versi, gunakan nama asset tetap seperti `jepretaja.apk` agar URL
+`latest` tidak perlu diubah. Uji tautan tersebut di browser mode pribadi atau
+salin ke perangkat Android; halaman GitHub tidak boleh muncul dan unduhan harus
+langsung dimulai. Jangan gunakan tautan **Actions Artifact**, karena itu bukan
+tautan publik permanen dan dapat kedaluwarsa.
+
+### D. Instal APK di Android
+
+1. Buka direct link di Chrome atau browser Android, lalu unduh APK.
+2. Jika muncul peringatan, izinkan browser yang digunakan memasang aplikasi dari
+   sumber ini melalui **Settings → Install unknown apps**. Menu dapat berbeda
+   menurut merek dan versi Android.
+3. Buka file dari notifikasi unduhan atau folder **Downloads**, lalu pilih
+   **Install**. Jika Android memblokirnya, aktifkan izin tersebut dan ulangi.
+4. Setelah instalasi selesai, buka JepretAja dan uji login, upload, serta fitur
+   yang membutuhkan backend.
+
+Untuk pembaruan, unggah APK versi baru dengan `versionCode` lebih tinggi pada
+Release berikutnya. APK harus ditandatangani dengan keystore yang sama agar dapat
+memperbarui instalasi sebelumnya; jangan membagikan keystore atau password-nya.
+
+### E. Checklist sebelum dibagikan
+
+- [ ] GitHub repository tidak memuat service account, `.env`, keystore, atau password.
+- [ ] Vercel deployment terakhir berstatus **Ready** dan URL publik dapat dibuka.
+- [ ] APK berhasil dipasang pada perangkat uji dan versi aplikasi benar.
+- [ ] Release memiliki asset APK di bagian **Assets**, bukan hanya artifact Actions.
+- [ ] Direct link dicoba dari perangkat yang tidak login ke GitHub.
 
 ---
 
