@@ -60,14 +60,12 @@ jobs:
         env:
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_UPLOAD_PRESET: ${{ secrets.CLOUDINARY_UPLOAD_PRESET }}
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          API_BASE_URL: https://jepretaja-admin.vercel.app
         run: |
           if [ -z "$CLOUDINARY_CLOUD_NAME" ] || [ -z "$CLOUDINARY_UPLOAD_PRESET" ]; then
             echo "::warning::Secret Cloudinary belum diisi. APK tetap jadi, tapi upload foto/video akan gagal saat dipakai."
           fi
-          if [ -z "$API_BASE_URL" ]; then
-            echo "::warning::Secret API_BASE_URL belum diisi. APK akan dibuat, tetapi fitur server belum dapat dipakai."
-          fi
+          echo "Backend APK: $API_BASE_URL"
           chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
