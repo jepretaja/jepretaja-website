@@ -11,21 +11,18 @@ kategori, promosi, notifikasi, analytics, settings, admin users, audit log
 
 ## Struktur Monorepo
 
-Repository ini berisi dua client JepretAja yang memakai project Firebase yang
-sama:
+Repository ini berisi website admin JepretAja. Source aplikasi Android
+dipelihara di repository terpisah:
 
 ```
 root/     <- website admin; deploy ke Vercel
-apk/      <- aplikasi Android Kotlin; build dengan Gradle atau GitHub Actions
+Android   <- https://github.com/MuhammadRycky/jepretaja-apk
 ```
 
-Vercel hanya memakai root repository ini untuk membangun website. Folder `apk/`
-tidak ikut dibundle ke website, tetapi tetap tersedia di GitHub agar source
-website dan Android mudah diedit bersama.
-
-Untuk membuka APK di Android Studio, pilih folder `apk/`. Tambahkan file
-`apk/app/google-services.json` dari Firebase Console secara lokal; file itu
-sengaja di-ignore dan tidak boleh diunggah ke repository publik.
+Vercel hanya memakai root repository ini untuk membangun website. Untuk membuka
+APK di Android Studio, clone repository Android tersebut. Tambahkan file
+`app/google-services.json` dari Firebase Console secara lokal; file itu sengaja
+di-ignore dan tidak boleh diunggah ke repository publik.
 src/
   firebase/       config Firebase + daftar nama koleksi Firestore
   auth/           AuthContext (login admin, cek role di admin_users)
@@ -60,7 +57,7 @@ tertutup total untuk klien.
 ## Prasyarat
 
 - Node.js 20+
-- Project Firebase yang sama dengan APK (lihat `jepretaja_app/README.md`)
+- Project Firebase yang sama dengan APK (lihat repository Android)
 
 ## Setup
 

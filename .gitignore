@@ -5,14 +5,3 @@ dist/
 .vercel
 .env*
 
-# Android / Gradle
-apk/.gradle/
-apk/.idea/
-apk/**/build/
-apk/local.properties
-apk/app/google-services.json
-apk/keystore.properties
-apk/**/*.jks
-apk/**/*.keystore
-apk/.externalNativeBuild/
-apk/**/.cxx/
