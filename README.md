@@ -1,0 +1,126 @@
+# JepretAja Admin — Website Admin (React)
+
+Dashboard operasional JepretAja: user, creator, moderasi Explore, booking,
+payment/escrow, wallet, withdrawal, refund, dispute, review, laporan,
+kategori, promosi, notifikasi, analytics, settings, admin users, audit log
+— sesuai section 18–22 & 29 dokumen konsep.
+
+## Struktur Proyek
+
+```
+src/
+  firebase/       config Firebase + daftar nama koleksi Firestore
+  auth/           AuthContext (login admin, cek role di admin_users)
+  hooks/          useCollection / useDocument (stream Firestore realtime)
+  components/     DataTable, StatCard, StatusBadge, SearchInput, dst
+  layouts/        Sidebar + AdminLayout + CreatorLayout
+  pages/          halaman panel admin, portal creator, dan dokumen publik
+  utils/          formatCurrency, formatDate, apiClient (/api/admin & /api/app), dst
+```
+
+Panel admin mencakup "Daftar Screen Website Admin" ditambah beberapa layar yang
+koleksinya sudah lama ada tapi belum punya tampilan: Katalog Paket, Portfolio
+Creator, Moderasi Komentar, Monitoring Chat, dan Akun Saya. Di headernya ada
+lonceng antrian (`hooks/useAdminQueue.js`) yang menghitung pekerjaan yang
+menunggu ditangani — verifikasi, karya, laporan, sengketa, transfer manual,
+penarikan, refund — disaring dengan permission yang sama dengan route-nya.
+
+Portal creator (`/creator`) adalah area terpisah dengan gerbang aksesnya
+sendiri — creator hanya melihat datanya sendiri. Selain ringkasan, paket,
+portfolio, booking, dan ulasan, di sana ada Unggahan Saya (karya Explore:
+unggah, ubah, hapus, plus catatan admin bila karyanya ditolak), Kalender
+Ketersediaan, Pesan, Notifikasi, Statistik, dan pengajuan Verifikasi Akun.
+Header portalnya memuat badge pesan & notifikasi belum dibaca
+(`hooks/useUnreadCreator.js`), memakai penanda `readAt == null` yang sama
+dengan badge di APK.
+
+Halaman Saldo & Penarikan menyimpan rekening bank creator di `users/{uid}` —
+**bukan** di `creators/{uid}` yang dibaca publik — lalu mengirim pengajuan
+pencairan ke `/api/app` (`requestWithdrawal`), karena koleksi `withdrawals`
+tertutup total untuk klien.
+
+## Prasyarat
+
+- Node.js 20+
+- Project Firebase yang sama dengan APK (lihat `jepretaja_app/README.md`)
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env
+# isi .env dengan config Firebase Web App Anda
+npm run dev
+```
+
+Build production:
+
+```bash
+npm run build
+```
+
+Hasil build ada di folder `dist/` — deploy ke Firebase Hosting, Vercel,
+Netlify, atau hosting statis lainnya.
+
+```bash
+# contoh deploy ke Firebase Hosting
+npm install -g firebase-tools
+firebase init hosting   # pilih folder "dist" sebagai public directory
+firebase deploy --only hosting
+```
+
+## Autentikasi & Role Admin
+
+Login memakai Firebase Authentication (Email/Password) yang sama dengan
+APK. Setelah login, `AuthContext` mengecek dokumen
+`admin_users/{uid}` — hanya user yang punya dokumen di koleksi ini yang
+dianggap admin. **Anda perlu membuat dokumen ini secara manual** untuk
+akun admin pertama:
+
+```js
+// via Firebase Console > Firestore, buat dokumen:
+// collection: admin_users, document ID: <uid akun admin>
+{ email: "admin@jepretaja.com", role: "super_admin", permissions: [] }
+```
+
+## Catatan implementasi penting
+
+- Halaman ini membaca/menulis Firestore langsung dari client memakai
+  akun admin yang sudah diverifikasi lewat Firestore Security Rules
+  (`isAdminRole()` di `backend/firestore/firestore.rules` pada proyek APK).
+  **Pastikan rules tersebut sudah di-deploy** sebelum memakai dashboard ini,
+  supaya akun non-admin tidak bisa membaca data sensitif meski tahu URL.
+- Aksi finansial (approve withdrawal, refund, release funds) di UI ini
+  masih berupa **update status sederhana** sebagai placeholder. Untuk
+  produksi, sambungkan ke Cloud Functions callable (`processWithdrawal`,
+  dst — lihat `backend/functions` di proyek APK) supaya perubahan saldo
+  & ledger tetap atomik dan konsisten dengan sisi APK.
+- Custom claims (role admin di token Auth, bukan hanya dokumen Firestore)
+  disarankan ditambahkan lewat Cloud Function `onAdminUserCreated` agar
+  Security Rules bisa memvalidasi role tanpa extra `get()` read setiap kali.
+- **Kas platform** (`/kas-platform`) — komisi `platformFee` kini ikut masuk ke
+  `platform_wallet/main` saat escrow dilepas, dan super admin bisa mencatat
+  pencairannya ke rekening pemilik. Hanya `super_admin`: izin
+  `manage_platform_payout` tidak diberikan ke peran lain, dan `/api/admin`
+  memeriksa nama perannya lagi di luar peta izin. Transfer banknya manual —
+  panel mencatat pembukuannya dan menulis audit log berisi nominal, rekening
+  tujuan, serta pelakunya. Tombol "Hitung Ulang" menyusun ulang saldo dari
+  seluruh dokumen escrow, jadi angkanya selalu bisa dibuktikan dari sumbernya
+  (dan itu pula cara memasukkan komisi dari escrow yang dilepas sebelum fitur
+  ini ada). Deploy ulang rules setelahnya: `firebase deploy --only firestore:rules`.
+- **Unggah foto** (portfolio, foto profil, dokumen verifikasi) memakai
+  `components/ImagePicker.jsx`: berkas dipilih langsung dari perangkat, dikecilkan
+  di browser, lalu diunggah ke Firebase Storage. Deploy aturannya dengan
+  `firebase deploy --only storage` (berkas `storage.rules`).
+  Kalau proyek belum punya bucket Storage — bucket baru mewajibkan paket Blaze —
+  panel otomatis menyimpan gambar terkompres di dalam dokumen Firestore sebagai
+  data URL, dengan batas total 700 KB per dokumen supaya tidak menabrak batas
+  1 MB per dokumen. Jalur cadangan itu membuat tombol unggah tetap bekerja,
+  tetapi Storage tetap jalur yang disarankan untuk produksi.
+
+## Yang masih perlu dikerjakan sebelum rilis
+
+- Hubungkan aksi finansial ke Cloud Functions (bukan update Firestore langsung)
+- Custom claims admin + proteksi rules yang lebih ketat
+- Export laporan (CSV/PDF) untuk Analytics & Transactions
+- Pagination untuk tabel dengan data besar (saat ini load semua dokumen)

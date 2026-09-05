@@ -1,0 +1,415 @@
+rules_version = '2';
+
+/**
+ * Aturan keamanan Firestore JepretAja.
+ *
+ * Prinsip: koleksi finansial (wallets, withdrawals, escrow, refunds, payments,
+ * audit_logs) TIDAK BISA ditulis dari browser atau APK sama sekali. Semua
+ * penulisannya lewat Admin SDK di /api/admin, dan Admin SDK melewati aturan
+ * ini sepenuhnya — jadi menutup akses klien di sini tidak memblokir server.
+ *
+ * Deploy: firebase deploy --only firestore:rules
+ * (Firebase CLI gratis, deploy rules tidak butuh paket Blaze.)
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // Custom claim di-set oleh /api/admin saat inviteAdmin. Fallback ke
+    // pengecekan dokumen supaya super_admin pertama (yang dibuat manual di
+    // Console, belum punya claim) tetap bisa bekerja.
+    function isAdmin() {
+      return signedIn() && (
+        request.auth.token.admin == true ||
+        exists(/databases/$(database)/documents/admin_users/$(uid()))
+      );
+    }
+
+    function isOwner(userId) {
+      return signedIn() && uid() == userId;
+    }
+
+    // Cegah klien mengubah field yang hanya boleh diisi server.
+    function noProtectedFields(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // Perubahan ini HANYA menyentuh field yang disebut, tidak lebih.
+    function onlyChanges(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // ---------- Profil ----------
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if
+        (isOwner(userId) && noProtectedFields(['role', 'status', 'isSuspended', 'createdAt']))
+        // Hapus akun sendiri: satu-satunya cara sah bagi pemilik menyentuh
+        // 'status'. Dibatasi ke nilai 'deleted' saja supaya jalur ini tidak
+        // bisa dipakai mengaktifkan kembali akun yang disuspend admin.
+        || (isOwner(userId)
+            && onlyChanges(['status', 'email', 'name'])
+            && request.resource.data.status == 'deleted')
+        || isAdmin();
+      allow delete: if false;
+    }
+
+    // Profil creator boleh dibaca siapa saja — ini etalase publik marketplace.
+    match /creators/{creatorId} {
+      allow read: if true;
+      allow create: if isOwner(creatorId);
+      // CATATAN PENTING: daftar ini dulu menyebut 'isVerified', padahal baik
+      // aplikasi Android maupun panel web sama-sama memakai field bernama
+      // 'verified' (lihat CreatorModel.kt dan CreatorList.jsx). Artinya field
+      // yang dijaga tidak pernah ada, sementara field aslinya terbuka lebar —
+      // seorang creator bisa menyetel verified: true pada dirinya sendiri dan
+      // langsung tampil "terverifikasi" di seluruh aplikasi. Nama yang benar
+      // sekarang dipakai, yang lama dibiarkan ikut terdaftar supaya data lama
+      // yang terlanjur memakainya tetap tertutup.
+      allow update: if
+        // totalBookings/completedBookings ikut dilindungi: keduanya dipakai
+        // menampilkan "tingkat penyelesaian" di profil publik, jadi kalau
+        // pemiliknya boleh menulis sendiri, angka kepercayaan itu tidak berarti
+        // apa-apa. Keduanya hanya ditulis server lewat Admin SDK.
+        (isOwner(creatorId) && noProtectedFields(['verified', 'isVerified', 'verificationStatus', 'rating', 'reviewCount', 'status', 'isSuspended', 'totalBookings', 'completedBookings']))
+        // Follow/unfollow dari APK menaikkan & menurunkan followerCount pada
+        // dokumen creator ORANG LAIN, jadi pemilik-saja tidak cukup. Dibatasi
+        // ketat ke satu field itu — pengikut tetap tidak bisa menyentuh rating,
+        // status verifikasi, atau apa pun yang lain.
+        || (signedIn() && onlyChanges(['followerCount']))
+        || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /creator_verifications/{docId} {
+      // Dokumen identitas: hanya pemilik dan admin, tidak pernah publik.
+      allow read: if isAdmin() || (signedIn() && resource.data.creatorId == uid());
+      allow create: if signedIn() && request.resource.data.creatorId == uid();
+      allow update, delete: if isAdmin();
+    }
+
+    // ---------- Katalog publik ----------
+    match /packages/{packageId} {
+      allow read: if true;
+      // isAdmin() ikut disebut di sini agar konsisten dengan update & delete
+      // di baris berikutnya. Tanpa itu admin bisa mengubah dan menghapus paket
+      // milik creator, tapi TIDAK bisa membuatkannya — timpang, dan membuat
+      // tombol "Tambah Paket" di panel admin selalu gagal.
+      allow create: if (signedIn() && request.resource.data.creatorId == uid()) || isAdmin();
+      allow update, delete: if (signedIn() && resource.data.creatorId == uid()) || isAdmin();
+    }
+
+    match /portfolios/{portfolioId} {
+      allow read: if true;
+      // Sama seperti packages: admin boleh membuatkan album untuk creator.
+      allow create: if (signedIn() && request.resource.data.creatorId == uid()) || isAdmin();
+      allow update, delete: if (signedIn() && resource.data.creatorId == uid()) || isAdmin();
+    }
+
+    match /explore_posts/{postId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.creatorId == uid();
+      allow update: if
+        (signedIn() && resource.data.creatorId == uid() && noProtectedFields(['moderationStatus', 'status']))
+        // Like, save, komentar, share, dan view semuanya menaikkan penghitung di
+        // dalam map `metrics` pada post MILIK ORANG LAIN. Tanpa klausa ini semua
+        // interaksi feed ditolak — aturan lama hanya mengizinkan pemilik post,
+        // padahal pemilik justru bukan pihak yang menekan tombol suka.
+        //
+        // Catatan jujur soal batasannya: karena penghitung ini ditulis dari
+        // klien, pengguna yang jahat secara teknis bisa mengarang isi `metrics`.
+        // Menutup celah itu sepenuhnya butuh penghitung dikerjakan server
+        // (Cloud Function/endpoint /api/app), bukan sekadar aturan yang lebih
+        // ketat. Dibatasi ke satu field `metrics` supaya kerusakan terburuknya
+        // hanya angka yang salah, tidak pernah menyentuh media atau moderasi.
+        || (signedIn() && onlyChanges(['metrics']))
+        || isAdmin();
+      allow delete: if (signedIn() && resource.data.creatorId == uid()) || isAdmin();
+    }
+
+    // Baca dokumen post untuk memutuskan izin komentar. Satu get() tambahan per
+    // komentar baru — harga yang wajar untuk aturan yang tidak bisa ditembus
+    // dengan memanggil Firestore langsung.
+    function bolehKomentar(postId) {
+      let p = get(/databases/$(database)/documents/explore_posts/$(postId)).data;
+      return p.creatorId == uid()
+        || !('commentPolicy' in p)
+        || p.commentPolicy == 'all'
+        || (
+          p.commentPolicy == 'followers'
+          && exists(/databases/$(database)/documents/follows/$(p.creatorId + '_' + uid()))
+        );
+    }
+
+    match /explore_comments/{commentId} {
+      allow read: if true;
+      // Kebijakan komentar milik post ditegakkan di sini, bukan hanya di UI.
+      // Kalau hanya UI yang menyembunyikan kolom komentar, siapa pun yang
+      // memanggil Firestore langsung tetap bisa menulis komentar pada post yang
+      // komentarnya sudah dimatikan pemiliknya.
+      allow create: if signedIn()
+        && request.resource.data.userId == uid()
+        && bolehKomentar(request.resource.data.postId);
+      allow update: if
+        (signedIn() && resource.data.userId == uid())
+        // Suka komentar menaikkan likeCount di komentar orang lain.
+        || (signedIn() && onlyChanges(['likeCount']))
+        || isAdmin();
+      allow delete: if (signedIn() && resource.data.userId == uid()) || isAdmin();
+    }
+
+    // ---------- Penanda interaksi Explore ----------
+    // Empat koleksi berikut sebelumnya TIDAK disebut sama sekali di file ini,
+    // sehingga jatuh ke penolakan menyeluruh di bagian paling bawah. Akibatnya
+    // like, simpan, follow, dan suka-komentar SELALU ditolak server — bukan
+    // hanya fitur baru, tapi juga tombol like/follow yang sudah lama ada.
+    //
+    // Pola id dokumennya {targetId}_{userId}, dan yang boleh membuat/menghapus
+    // hanya pemilik penanda itu sendiri; tidak ada yang boleh membatalkan
+    // like orang lain.
+    match /explore_likes/{likeId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.userId == uid();
+      allow delete: if signedIn() && resource.data.userId == uid();
+      allow update: if false;
+    }
+
+    // Creator boleh mematikan tombol simpan untuk karyanya. Sama seperti
+    // kebijakan komentar, ini ditegakkan di aturan — kalau hanya tombolnya yang
+    // disembunyikan, memanggil Firestore langsung tetap bisa menyimpan.
+    function bolehSimpan(postId) {
+      let p = get(/databases/$(database)/documents/explore_posts/$(postId)).data;
+      return !('allowSave' in p) || p.allowSave == true || p.creatorId == uid();
+    }
+
+    match /explore_saves/{saveId} {
+      // Daftar simpanan bersifat pribadi — hanya pemiliknya yang boleh membaca.
+      //
+      // `get` dan `list` sengaja dipisah. Untuk `get`, `resource == null` harus
+      // diizinkan karena feed menanyakan penanda yang BELUM ada ("apakah post
+      // ini sudah saya simpan?"); tanpa itu jawaban "belum" balik sebagai
+      // PERMISSION_DENIED, bukan "tidak ada".
+      //
+      // Untuk `list`, syaratnya justru harus lugas tanpa cabang null: Firestore
+      // menolak query yang batasannya tidak MEMBUKTIKAN semua hasil lolos
+      // aturan, dan ekspresi bercabang membuat pembuktian itu gagal. Query di
+      // aplikasi selalu menyaring userId == uid, jadi bentuk lugas ini cocok.
+      allow get: if signedIn() && (resource == null || resource.data.userId == uid());
+      allow list: if signedIn() && resource.data.userId == uid();
+      allow create: if signedIn()
+        && request.resource.data.userId == uid()
+        && bolehSimpan(request.resource.data.postId);
+      allow delete: if signedIn() && resource.data.userId == uid();
+      allow update: if false;
+    }
+
+    match /explore_comment_likes/{likeId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.userId == uid();
+      allow delete: if signedIn() && resource.data.userId == uid();
+      allow update: if false;
+    }
+
+    match /follows/{followId} {
+      // Daftar pengikut boleh dibaca publik — jumlah & status "sudah diikuti"
+      // ditampilkan di profil creator dan di feed.
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.userId == uid();
+      allow delete: if signedIn() && resource.data.userId == uid();
+      allow update: if false;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.customerId == uid();
+      allow update: if (signedIn() && resource.data.customerId == uid() && noProtectedFields(['status', 'moderationStatus'])) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /promotions/{promoId} {
+      // Kode promo boleh dibaca untuk ditampilkan, tapi nilai diskon selalu
+      // dihitung ulang di server saat booking dibuat.
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------- Transaksi ----------
+    match /bookings/{bookingId} {
+      allow read: if isAdmin() || (signedIn() && (resource.data.customerId == uid() || resource.data.creatorId == uid()));
+      // Booking dibuat lewat server supaya harga & ketersediaan tervalidasi.
+      allow create, update, delete: if false;
+    }
+
+    // Chat memakai dua field terpisah (customerId & creatorId), BUKAN array
+    // `participants`. Aturan lama memeriksa `resource.data.participants` yang
+    // tidak pernah ada di dokumen mana pun, sehingga setiap pembacaan dan
+    // penulisan chat dari APK selalu ditolak.
+    function isChatMember(chat) {
+      return signedIn() && (chat.customerId == uid() || chat.creatorId == uid());
+    }
+
+    match /chats/{chatId} {
+      allow read: if isChatMember(resource.data) || isAdmin();
+      allow create: if isChatMember(request.resource.data);
+      // Pesan terakhir & waktu diperbarui setiap kali ada pesan baru.
+      allow update: if isChatMember(resource.data)
+                    && onlyChanges(['lastMessage', 'updatedAt']);
+      allow delete: if isAdmin();
+    }
+
+    // Pesan disimpan sebagai koleksi TINGKAT ATAS dengan field `chatId`, bukan
+    // sub-koleksi di bawah /chats/{chatId}. Aturan lama hanya menjaga bentuk
+    // sub-koleksi yang tidak dipakai aplikasi, jadi seluruh isi chat tertolak.
+    //
+    // Keanggotaan diperiksa lewat array `participants` yang ikut ditulis di
+    // setiap dokumen pesan, BUKAN lewat get() ke dokumen chat induknya.
+    // Alasannya batas kuota: aturan hanya boleh melakukan sedikit pemanggilan
+    // get() per permintaan, sementara layar chat mengambil seluruh riwayat
+    // pesan sekaligus tanpa limit — memakai get() per pesan akan menabrak batas
+    // itu begitu percakapan agak panjang, dan seluruh query gagal.
+    match /messages/{messageId} {
+      allow read: if signedIn() && uid() in resource.data.participants;
+      allow create: if signedIn()
+                    && request.resource.data.senderId == uid()
+                    && uid() in request.resource.data.participants
+                    // Peserta yang ditulis harus benar-benar peserta chat itu.
+                    && request.resource.data.participants.hasOnly(
+                         [get(/databases/$(database)/documents/chats/$(request.resource.data.chatId)).data.customerId,
+                          get(/databases/$(database)/documents/chats/$(request.resource.data.chatId)).data.creatorId]
+                       );
+      // Satu-satunya perubahan yang sah pada pesan adalah tanda sudah dibaca,
+      // dan hanya boleh dilakukan oleh LAWAN BICARA — pengirim tidak bisa
+      // menandai pesannya sendiri sudah dibaca.
+      allow update: if signedIn()
+                    && uid() in resource.data.participants
+                    && resource.data.senderId != uid()
+                    && onlyChanges(['readAt']);
+      allow delete: if isAdmin();
+    }
+
+    // Blokir pengguna — koleksi ini juga belum pernah disebut, sehingga tombol
+    // blokir di ruang chat tidak pernah benar-benar bekerja.
+    match /blocked_users/{blockId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.blockerId == uid();
+      allow delete: if signedIn() && resource.data.blockerId == uid();
+      allow update: if false;
+    }
+
+    match /notifications/{notifId} {
+      // Admin perlu membaca seluruh notifikasi untuk halaman Notifications di
+      // panel (riwayat notifikasi terkirim). Tanpa isAdmin() di sini, query
+      // seluruh koleksi dari panel ditolak — aturan per-dokumen di bawah tidak
+      // bisa dievaluasi untuk query yang cakupannya satu koleksi penuh.
+      allow read: if isAdmin() || (signedIn() && resource.data.userId == uid());
+      // Hanya boleh menandai sudah dibaca.
+      allow update: if signedIn() && resource.data.userId == uid()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']);
+      allow create, delete: if false;
+    }
+
+    match /reports/{reportId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.reporterId == uid());
+      allow create: if signedIn() && request.resource.data.reporterId == uid();
+      allow update, delete: if isAdmin();
+    }
+
+    // ---------- Finansial: server-only ----------
+    match /wallets/{creatorId} {
+      allow read: if isOwner(creatorId) || isAdmin();
+      allow write: if false;
+    }
+
+    match /wallet_transactions/{ledgerId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.creatorId == uid());
+      allow write: if false; // ledger immutable
+    }
+
+    match /withdrawals/{withdrawalId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.creatorId == uid());
+      allow write: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.customerId == uid());
+      allow write: if false;
+    }
+
+    // Kalender tanggal tertutup creator. Boleh dibaca siapa saja yang sudah
+    // masuk — aplikasi perlu menampilkan tanggal yang tidak tersedia pada
+    // layar booking. Penulisan hanya lewat server (/api/app), karena creator
+    // tidak boleh menutup tanggal yang sudah ada booking aktif; pemeriksaan
+    // itu tidak bisa dilakukan di dalam security rules.
+    match /availability_blocks/{blockId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /escrow_transactions/{escrowId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /refunds/{refundId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.customerId == uid());
+      allow write: if false;
+    }
+
+    match /disputes/{disputeId} {
+      allow read: if isAdmin() || (signedIn() && (resource.data.customerId == uid() || resource.data.creatorId == uid()));
+      allow write: if false;
+    }
+
+    // ---------- Admin ----------
+    match /admin_users/{adminId} {
+      // Setiap admin boleh membaca dokumennya sendiri (dipakai AuthContext
+      // saat login, sebelum custom claim sempat tersinkron).
+      allow read: if isOwner(adminId) || isAdmin();
+      allow write: if false; // hanya lewat /api/admin
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ---------- Kas platform ----------
+    // Saldo komisi dan riwayat pencairannya. Ditulis HANYA oleh Admin SDK di
+    // /api/admin, yang memeriksa peran super_admin sebelum menyentuhnya —
+    // aturan di sini tidak bisa membedakan super_admin dari admin biasa,
+    // karena claim yang tersedia cuma `admin`. Karena itu penulisan ditutup
+    // total dan pembatasan perannya ditegakkan di server, bukan di sini.
+    match /platform_wallet/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /platform_payouts/{payoutId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Tolak apa pun yang tidak disebut di atas.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

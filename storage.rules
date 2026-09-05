@@ -1,0 +1,87 @@
+rules_version = '2';
+
+/**
+ * Aturan Firebase Storage JepretAja.
+ *
+ * Dipakai oleh components/ImagePicker.jsx (portfolio, foto profil, dokumen
+ * verifikasi). Prinsipnya sama dengan firestore.rules: setiap orang hanya boleh
+ * menulis ke folder miliknya sendiri, dan yang boleh dibaca publik hanya yang
+ * memang etalase.
+ *
+ * Deploy: firebase deploy --only storage
+ *
+ * CATATAN: bucket Storage baru butuh paket Blaze. Kalau bucket proyek ini
+ * belum ada, unggahan akan ditolak dan panel otomatis menyimpan gambarnya di
+ * dalam dokumen Firestore — lihat penjelasan lengkapnya di
+ * src/firebase/storage.js. Berkas ini tetap disertakan supaya begitu Storage
+ * diaktifkan, aturannya sudah siap dan tidak ada jendela waktu ketika bucket
+ * terbuka untuk siapa saja.
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function masuk() {
+      return request.auth != null;
+    }
+
+    // Custom claim `admin` di-set /api/admin saat inviteAdmin — sama seperti
+    // yang dipakai firestore.rules.
+    function isAdmin() {
+      return masuk() && request.auth.token.admin == true;
+    }
+
+    function pemilik(uid) {
+      return masuk() && request.auth.uid == uid;
+    }
+
+    // Batas ini menutup dua hal sekaligus: berkas raksasa yang menghabiskan
+    // kuota, dan berkas yang mengaku gambar padahal bukan. Panel sudah
+    // mengompres di browser sampai ratusan kilobita, jadi 6 MB hanyalah pagar
+    // untuk unggahan yang tidak lewat panel.
+    function gambarWajar() {
+      return request.resource.size < 6 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ---------- Etalase publik ----------
+    // Portfolio dan foto profil tampil di aplikasi untuk siapa saja, termasuk
+    // yang belum memasang APK — sama seperti `allow read: if true` pada
+    // koleksi creators dan portfolios di firestore.rules.
+    match /portfolios/{uid}/{berkas} {
+      allow read: if true;
+      allow write: if (pemilik(uid) || isAdmin()) && gambarWajar();
+      allow delete: if pemilik(uid) || isAdmin();
+    }
+
+    match /profiles/{uid}/{berkas} {
+      allow read: if true;
+      allow write: if (pemilik(uid) || isAdmin()) && gambarWajar();
+      allow delete: if pemilik(uid) || isAdmin();
+    }
+
+    // Karya Explore. Ikut publik karena feed Explore memang bisa dilihat tanpa
+    // login — yang menentukan sebuah karya tampil atau tidak adalah field
+    // `status` pada dokumennya, bukan kerahasiaan berkasnya.
+    match /explore/{uid}/{berkas} {
+      allow read: if true;
+      allow write: if (pemilik(uid) || isAdmin()) && gambarWajar();
+      allow delete: if pemilik(uid) || isAdmin();
+    }
+
+    // ---------- Dokumen identitas ----------
+    // TIDAK publik. Ini foto KTP dan swafoto pemegangnya; membiarkannya
+    // terbaca siapa saja jauh lebih berbahaya daripada ketidaknyamanan
+    // membatasinya. Admin tetap bisa membukanya lewat URL unduhan bertoken
+    // yang tersimpan di dokumen verifikasi.
+    match /verifications/{uid}/{berkas} {
+      allow read: if pemilik(uid) || isAdmin();
+      allow write: if pemilik(uid) && gambarWajar();
+      allow delete: if isAdmin();
+    }
+
+    // Tolak apa pun yang tidak disebut di atas.
+    match /{semua=**} {
+      allow read, write: if false;
+    }
+  }
+}
