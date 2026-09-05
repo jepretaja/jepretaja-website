@@ -1,0 +1,3 @@
+{
+  "_comment": "Placeholder. Download google-services.json ASLI dari Firebase Console (Project Settings > Your apps > Android app com.jepretaja.app) dan letakkan di app/google-services.json. TANPA file asli ini, project TIDAK AKAN BISA di-build sama sekali — Gradle plugin google-services akan gagal saat sync."
+}

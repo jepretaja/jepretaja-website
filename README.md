@@ -8,6 +8,24 @@ kategori, promosi, notifikasi, analytics, settings, admin users, audit log
 ## Struktur Proyek
 
 ```
+
+## Struktur Monorepo
+
+Repository ini berisi dua client JepretAja yang memakai project Firebase yang
+sama:
+
+```
+root/     <- website admin; deploy ke Vercel
+apk/      <- aplikasi Android Kotlin; build dengan Gradle atau GitHub Actions
+```
+
+Vercel hanya memakai root repository ini untuk membangun website. Folder `apk/`
+tidak ikut dibundle ke website, tetapi tetap tersedia di GitHub agar source
+website dan Android mudah diedit bersama.
+
+Untuk membuka APK di Android Studio, pilih folder `apk/`. Tambahkan file
+`apk/app/google-services.json` dari Firebase Console secara lokal; file itu
+sengaja di-ignore dan tidak boleh diunggah ke repository publik.
 src/
   firebase/       config Firebase + daftar nama koleksi Firestore
   auth/           AuthContext (login admin, cek role di admin_users)

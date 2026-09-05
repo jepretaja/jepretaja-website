@@ -1,0 +1,2 @@
+# Salin jadi "local.properties" (tanpa .example), isi sesuai lokasi SDK Anda.
+sdk.dir=C\:\\Users\\ASUS\\AppData\\Local\\Android\\Sdk
