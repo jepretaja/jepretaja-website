@@ -17,7 +17,7 @@ export default function Privacy() {
     <LegalLayout
       judul="Kebijakan Privasi"
       ringkas="Menjelaskan data apa yang JepretAja kumpulkan, untuk apa dipakai, dengan siapa dibagikan, dan bagaimana Anda mengendalikannya."
-      diperbarui="4 September 2026"
+      diperbarui="6 September 2026"
     >
       <h2>1. Siapa kami</h2>
       <p>
@@ -79,7 +79,7 @@ export default function Privacy() {
       <ul>
         <li><strong>Google Firebase</strong> (Authentication, Firestore, Cloud Messaging, Analytics, Crashlytics, App Check) — autentikasi, penyimpanan data, notifikasi, dan diagnostik.</li>
         <li><strong>Cloudinary</strong> — penyimpanan dan pengiriman foto serta video yang Anda unggah.</li>
-        <li><strong>Midtrans</strong> — pemrosesan pembayaran. Data kartu/rekening Anda diproses langsung oleh Midtrans; <strong>kami tidak pernah menyimpan nomor kartu Anda</strong>.</li>
+        <li><strong>Penyedia bank</strong> — transfer manual dilakukan melalui bank yang Anda pilih sendiri. JepretAja tidak menerima atau menyimpan nomor kartu, PIN, password, atau OTP perbankan Anda.</li>
         <li><strong>Vercel</strong> — tempat berjalannya layanan server dan panel web kami.</li>
       </ul>
       <p>
@@ -102,7 +102,16 @@ export default function Privacy() {
         <li><strong>Konten yang Anda unggah</strong> — dihapus bersama penghapusan akun, kecuali yang sudah menjadi bagian dari catatan pesanan.</li>
       </ul>
 
-      <h2>7. Hak Anda</h2>
+      <h2>7. Pembayaran, refund, dan sengketa</h2>
+      <p>
+        Pada versi layanan saat ini, pembayaran dilakukan melalui transfer manual ke rekening
+        yang ditampilkan oleh sistem. Bukti dan status pembayaran dapat dicatat sebagai riwayat
+        transaksi dan ditinjau admin. Pengajuan refund atau sengketa juga disimpan bersama
+        alasan dan bukti yang Anda berikan agar keputusan dapat diaudit. Kami tidak meminta
+        kredensial perbankan dan tidak dapat melihat PIN, password, atau OTP Anda.
+      </p>
+
+      <h2>8. Hak Anda</h2>
       <ul>
         <li><strong>Mengakses dan memperbaiki</strong> data melalui menu Profil di aplikasi.</li>
         <li><strong>Menghapus akun</strong> — lihat halaman <a href="/hapus-akun">Penghapusan Akun</a>.</li>
@@ -110,7 +119,7 @@ export default function Privacy() {
         <li><strong>Mengajukan keberatan</strong> atas pemrosesan data dengan menghubungi kami.</li>
       </ul>
 
-      <h2>8. Keamanan</h2>
+      <h2>9. Keamanan</h2>
       <p>
         Seluruh komunikasi aplikasi terenkripsi lewat HTTPS. Akses ke basis data dibatasi
         aturan keamanan per pengguna, dan seluruh operasi keuangan dijalankan di sisi server
@@ -119,20 +128,20 @@ export default function Privacy() {
         akses tidak sah pada akun Anda.
       </p>
 
-      <h2>9. Anak-anak</h2>
+      <h2>10. Anak-anak</h2>
       <p>
         JepretAja tidak ditujukan untuk pengguna di bawah 17 tahun dan kami tidak dengan
         sengaja mengumpulkan data anak. Bila Anda mengetahui adanya data semacam itu, beri
         tahu kami dan akan segera kami hapus.
       </p>
 
-      <h2>10. Perubahan kebijakan</h2>
+      <h2>11. Perubahan kebijakan</h2>
       <p>
         Bila kebijakan ini berubah secara berarti, kami akan memberitahukannya di dalam
         aplikasi dan memperbarui tanggal di bagian atas halaman ini.
       </p>
 
-      <h2>11. Hubungi kami</h2>
+      <h2>12. Hubungi kami</h2>
       <p>
         Pertanyaan atau permintaan terkait data pribadi dapat dikirim ke{' '}
         <a href="mailto:support.soxvo@gmail.com">support.soxvo@gmail.com</a>. Kami berupaya

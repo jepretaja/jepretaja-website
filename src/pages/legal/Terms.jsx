@@ -13,7 +13,7 @@ export default function Terms() {
     <LegalLayout
       judul="Syarat Layanan"
       ringkas="Aturan penggunaan JepretAja bagi pelanggan maupun creator, termasuk soal pembayaran, pembatalan, dan sengketa."
-      diperbarui="4 September 2026"
+      diperbarui="6 September 2026"
     >
       <h2>1. Penerimaan syarat</h2>
       <p>
@@ -46,33 +46,46 @@ export default function Terms() {
         <li>Menyerahkan hasil sesuai tenggat yang dijanjikan.</li>
       </ul>
 
-      <h2>5. Pembayaran dan dana ditahan (escrow)</h2>
+      <h2>5. Pembayaran dan dana transaksi</h2>
       <ul>
-        <li>Pembayaran diproses melalui penyedia pembayaran pihak ketiga (Midtrans) atau transfer manual yang diverifikasi admin.</li>
+        <li>Pada versi layanan saat ini, pembayaran dilakukan melalui transfer manual ke rekening yang ditampilkan di instruksi pembayaran dan diverifikasi admin.</li>
         <li>
-          Dana pelanggan <strong>ditahan lebih dahulu</strong> dan baru diteruskan ke dompet
-          creator setelah pekerjaan dinyatakan selesai. Ini melindungi kedua belah pihak.
+          Dana yang sudah terverifikasi dicatat dalam sistem dan diproses sesuai status booking,
+          penyelesaian layanan, refund, atau sengketa yang berlaku.
         </li>
         <li>JepretAja memungut biaya layanan dari nilai transaksi; besarannya ditampilkan sebelum Anda membayar.</li>
         <li>Creator dapat mengajukan pencairan dana dari saldo tersedia, dengan batas minimum yang berlaku.</li>
       </ul>
 
-      <h2>6. Pembatalan dan refund</h2>
+      <h2>6. Transfer manual dan batas tanggung jawab pembayaran</h2>
       <ul>
-        <li>Pembatalan oleh pelanggan sebelum pekerjaan dimulai dapat dikenai potongan sesuai kedekatan dengan tanggal acara.</li>
-        <li>Pembatalan sepihak oleh creator setelah dikonfirmasi menghasilkan refund penuh bagi pelanggan.</li>
-        <li>Permintaan refund diajukan lewat aplikasi dan ditinjau tim kami.</li>
+        <li>Transfer hanya boleh dilakukan ke rekening dan nominal yang ditampilkan di instruksi pembayaran resmi dalam aplikasi.</li>
+        <li>Jangan mengirim PIN, password, OTP, atau kredensial perbankan kepada JepretAja, creator, atau siapa pun melalui chat.</li>
+        <li>JepretAja tidak bertanggung jawab atas transfer ke rekening yang salah, nominal yang salah, biaya bank, keterlambatan bank, atau transfer yang dilakukan di luar instruksi resmi.</li>
+        <li>Status pembayaran baru dianggap diterima setelah diverifikasi dan tercatat pada booking. Bukti transfer bukan jaminan pembayaran telah berhasil.</li>
+        <li>Kami dapat meminta bukti tambahan dan menahan perubahan status sampai verifikasi selesai.</li>
       </ul>
 
-      <h2>7. Sengketa</h2>
+      <h2>7. Pembatalan dan refund</h2>
+      <ul>
+        <li>Pembatalan hanya tersedia pada status booking yang diizinkan sistem. Hak pembatalan dapat berbeda menurut tahap layanan.</li>
+        <li>Permintaan refund diajukan lewat aplikasi dengan alasan dan bukti yang relevan.</li>
+        <li>Refund tidak otomatis disetujui. Admin meninjau status booking, bukti pembayaran, alasan, dan kontribusi masing-masing pihak.</li>
+        <li>Keputusan dapat berupa refund penuh, refund sebagian, melanjutkan dana kepada creator, atau penutupan tanpa refund sesuai bukti dan keadaan kasus.</li>
+        <li>Waktu dana kembali juga bergantung pada proses bank. JepretAja tidak menjanjikan waktu penyelesaian bank tertentu.</li>
+      </ul>
+
+      <h2>8. Sengketa</h2>
       <p>
         Bila hasil pekerjaan dianggap tidak sesuai, pelanggan maupun creator dapat membuka
         sengketa melalui aplikasi. Tim kami meninjau bukti dari kedua pihak dan dapat memutuskan
         untuk meneruskan dana ke creator, mengembalikan sebagian atau seluruhnya kepada
-        pelanggan, atau menjadwalkan ulang pekerjaan. Keputusan disampaikan beserta alasannya.
+        pelanggan, atau menutup sengketa tanpa refund. Keputusan disampaikan beserta alasannya
+        dan dicatat dalam riwayat kasus. Selama sengketa berlangsung, dana terkait dapat ditahan
+        dari proses pencairan sampai keputusan dibuat.
       </p>
 
-      <h2>8. Konten yang dilarang</h2>
+      <h2>9. Konten yang dilarang</h2>
       <ul>
         <li>Konten seksual eksplisit, kekerasan, atau yang melanggar hukum Indonesia.</li>
         <li>Karya milik orang lain yang diunggah tanpa izin.</li>
@@ -84,7 +97,7 @@ export default function Terms() {
         ditangguhkan.
       </p>
 
-      <h2>9. Hak atas karya</h2>
+      <h2>10. Hak atas karya</h2>
       <p>
         Hak cipta atas foto dan video tetap milik creator yang membuatnya. Dengan mengunggahnya
         ke JepretAja, creator memberi kami izin terbatas untuk menampilkan karya tersebut di
@@ -92,33 +105,34 @@ export default function Terms() {
         pesanannya sesuai kesepakatan pada paket.
       </p>
 
-      <h2>10. Penangguhan akun</h2>
+      <h2>11. Penangguhan akun</h2>
       <p>
         Kami dapat menangguhkan atau menghapus akun yang melanggar syarat ini, melakukan
         penipuan, atau merugikan pengguna lain. Bila akun ditangguhkan sementara ada dana
         tertahan, dana tersebut tetap diselesaikan sesuai mekanisme sengketa.
       </p>
 
-      <h2>11. Batasan tanggung jawab</h2>
+      <h2>12. Batasan tanggung jawab</h2>
       <p>
         Sejauh diizinkan hukum yang berlaku, tanggung jawab JepretAja atas suatu pesanan
-        terbatas pada nilai transaksi pesanan tersebut. Kami tidak bertanggung jawab atas
-        kerugian tidak langsung seperti kehilangan keuntungan atau peluang.
+        terbatas pada nilai transaksi pesanan tersebut, kecuali hukum yang berlaku menentukan
+        lain. Kami tidak bertanggung jawab atas kerugian tidak langsung, kehilangan keuntungan,
+        gangguan bank, kegagalan jaringan, atau tindakan creator/pelanggan di luar kendali kami.
       </p>
 
-      <h2>12. Perubahan</h2>
+      <h2>13. Perubahan</h2>
       <p>
         Syarat ini dapat diperbarui. Perubahan yang berarti akan diberitahukan di dalam
         aplikasi, dan penggunaan setelah pemberitahuan berarti Anda menerima versi terbaru.
       </p>
 
-      <h2>13. Hukum yang berlaku</h2>
+      <h2>14. Hukum yang berlaku</h2>
       <p>
         Syarat ini tunduk pada hukum Republik Indonesia. Sengketa yang tidak dapat diselesaikan
         secara musyawarah akan diselesaikan di pengadilan yang berwenang di Indonesia.
       </p>
 
-      <h2>14. Kontak</h2>
+      <h2>15. Kontak</h2>
       <p>
         Pertanyaan mengenai syarat ini dapat dikirim ke{' '}
         <a href="mailto:support.soxvo@gmail.com">support.soxvo@gmail.com</a>.
