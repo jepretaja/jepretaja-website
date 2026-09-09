@@ -16,8 +16,21 @@ const MAP = {
   refunded: 'info', hidden: 'neutral', open: 'warning', deleted: 'neutral',
 };
 
+const LABEL = {
+  pending_payment: 'Menunggu',
+  paid: 'Dikonfirmasi',
+  confirmed: 'Dikonfirmasi',
+  upcoming: 'Dikonfirmasi',
+  rejected: 'Ditolak',
+  completed: 'Selesai',
+  customer_confirmed: 'Selesai',
+  funds_released: 'Selesai',
+  reviewed: 'Selesai',
+  cancelled: 'Dibatalkan',
+};
+
 export default function StatusBadge({ status }) {
   if (!status) return <span className="badge badge-neutral">-</span>;
   const tone = MAP[status.toLowerCase()] || 'neutral';
-  return <span className={`badge badge-${tone}`}>{status.replace(/_/g, ' ')}</span>;
+  return <span className={`badge badge-${tone}`}>{LABEL[status.toLowerCase()] || status.replace(/_/g, ' ')}</span>;
 }

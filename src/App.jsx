@@ -15,7 +15,6 @@ const UserList = lazy(() => import('./pages/users/UserList'));
 const UserDetail = lazy(() => import('./pages/users/UserDetail'));
 const CreatorList = lazy(() => import('./pages/creators/CreatorList'));
 const CreatorDetail = lazy(() => import('./pages/creators/CreatorDetail'));
-const CreatorVerification = lazy(() => import('./pages/creators/CreatorVerification'));
 const ExploreModeration = lazy(() => import('./pages/explore/ExploreModeration'));
 const PostDetail = lazy(() => import('./pages/explore/PostDetail'));
 const BookingList = lazy(() => import('./pages/bookings/BookingList'));
@@ -70,9 +69,6 @@ const CreatorChats = lazy(() => import('./pages/creatorportal/CreatorChats'));
 const CreatorNotifications = lazy(() => import('./pages/creatorportal/CreatorNotifications'));
 const CreatorStatistics = lazy(() => import('./pages/creatorportal/CreatorStatistics'));
 const CreatorPosts = lazy(() => import('./pages/creatorportal/CreatorPosts'));
-// Namanya sengaja dibedakan dari CreatorVerification milik admin di atas:
-// yang itu ANTRIAN peninjauan, yang ini FORMULIR pengajuan.
-const CreatorVerificationRequest = lazy(() => import('./pages/creatorportal/CreatorVerification'));
 
 function PageFallback() {
   return <div className="loading">Memuat halaman...</div>;
@@ -120,7 +116,6 @@ export default function App() {
             <Route path="chats" element={<Lazy><CreatorChats /></Lazy>} />
             <Route path="notifications" element={<Lazy><CreatorNotifications /></Lazy>} />
             <Route path="statistics" element={<Lazy><CreatorStatistics /></Lazy>} />
-            <Route path="verification" element={<Lazy><CreatorVerificationRequest /></Lazy>} />
           </Route>
           <Route element={<AdminLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -128,7 +123,6 @@ export default function App() {
             <Route path="/users/:id" element={<Lazy><RequirePermission permission="view_users"><UserDetail /></RequirePermission></Lazy>} />
             <Route path="/creators" element={<Lazy><RequirePermission permission="view_users"><CreatorList /></RequirePermission></Lazy>} />
             <Route path="/creators/:id" element={<Lazy><RequirePermission permission="view_users"><CreatorDetail /></RequirePermission></Lazy>} />
-            <Route path="/creator-verification" element={<Lazy><RequirePermission permission="verify_creator"><CreatorVerification /></RequirePermission></Lazy>} />
             <Route path="/explore" element={<Lazy><RequirePermission permission="moderate_content"><ExploreModeration /></RequirePermission></Lazy>} />
             <Route path="/explore/:id" element={<Lazy><RequirePermission permission="moderate_content"><PostDetail /></RequirePermission></Lazy>} />
             <Route path="/bookings" element={<Lazy><RequirePermission permission="manage_booking"><BookingList /></RequirePermission></Lazy>} />

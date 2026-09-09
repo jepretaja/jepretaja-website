@@ -111,14 +111,6 @@ export default function CreatorHome() {
       icon: 'image',
     },
     {
-      id: 'verifikasi',
-      label: 'Ajukan verifikasi akun',
-      hint: 'Lencana terverifikasi membuat calon pelanggan lebih percaya.',
-      to: '/creator/verification',
-      selesai: creatorProfile?.verified === true,
-      icon: 'verified',
-    },
-    {
       id: 'rekening',
       label: 'Isi rekening penarikan',
       hint: 'Diperlukan sebelum saldo bisa dicairkan.',
@@ -146,13 +138,7 @@ export default function CreatorHome() {
           <div className="hero-salam">{salam()},</div>
           <h1 className="hero-nama">{nama}</h1>
           <div className="hero-cip">
-            {creatorProfile?.verified ? (
-              <span className="cip cip-sukses"><Icon name="verified" size={14} /> Terverifikasi</span>
-            ) : (
-              <Link className="cip cip-peringatan" to="/creator/verification">
-                <Icon name="verified" size={14} /> Belum terverifikasi
-              </Link>
-            )}
+            <span className="cip cip-sukses"><Icon name="verified" size={14} /> Creator aktif</span>
             {creatorProfile?.city && <span className="cip"><Icon name="target" size={14} /> {creatorProfile.city}</span>}
             <span className="cip"><Icon name="star" size={14} /> {rating.toFixed(1)} · {selesai} sesi selesai</span>
           </div>

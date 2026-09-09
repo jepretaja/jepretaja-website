@@ -295,6 +295,9 @@ async function pindahStatus(req, { toStatus, pelaku, alasanDefault }) {
 export const startService = (req) =>
   pindahStatus(req, { toStatus: 'in_progress', pelaku: 'creator', alasanDefault: 'creator memulai sesi' });
 
+export const confirmBooking = (req) =>
+  pindahStatus(req, { toStatus: 'confirmed', pelaku: 'creator', alasanDefault: 'creator menerima booking' });
+
 export const markServiceCompleted = (req) =>
   pindahStatus(req, { toStatus: 'completed', pelaku: 'creator', alasanDefault: 'creator menandai sesi selesai' });
 

@@ -68,17 +68,6 @@ service firebase.storage {
       allow delete: if pemilik(uid) || isAdmin();
     }
 
-    // ---------- Dokumen identitas ----------
-    // TIDAK publik. Ini foto KTP dan swafoto pemegangnya; membiarkannya
-    // terbaca siapa saja jauh lebih berbahaya daripada ketidaknyamanan
-    // membatasinya. Admin tetap bisa membukanya lewat URL unduhan bertoken
-    // yang tersimpan di dokumen verifikasi.
-    match /verifications/{uid}/{berkas} {
-      allow read: if pemilik(uid) || isAdmin();
-      allow write: if pemilik(uid) && gambarWajar();
-      allow delete: if isAdmin();
-    }
-
     // Tolak apa pun yang tidak disebut di atas.
     match /{semua=**} {
       allow read, write: if false;

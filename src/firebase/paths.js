@@ -14,7 +14,6 @@
 export const PATHS = {
   users: 'users',
   creators: 'creators',
-  creatorVerifications: 'creator_verifications',
 
   explorePosts: 'explore_posts',
   exploreComments: 'explore_comments',

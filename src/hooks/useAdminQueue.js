@@ -31,12 +31,6 @@ export function useAdminQueue() {
 
   // Setiap query disaring di server supaya yang mengalir hanya dokumen yang
   // benar-benar menunggu, bukan seluruh koleksi.
-  const { data: verifikasi } = useCollection(
-    collection(db, PATHS.creatorVerifications), [where('status', '==', 'pending')]
-  );
-  const { data: karya } = useCollection(
-    collection(db, PATHS.explorePosts), [where('status', '==', 'pending_review')]
-  );
   const { data: sengketa } = useCollection(
     collection(db, PATHS.disputes), [where('status', 'in', ['open', 'reviewing'])]
   );
@@ -57,20 +51,6 @@ export function useAdminQueue() {
   const { data: laporan } = useCollection(collection(db, PATHS.reports));
 
   const baris = [
-    {
-      id: 'verifikasi',
-      label: 'Verifikasi creator',
-      to: '/creator-verification',
-      permission: 'verify_creator',
-      jumlah: verifikasi.length,
-    },
-    {
-      id: 'karya',
-      label: 'Karya menunggu tinjauan',
-      to: '/explore',
-      permission: 'moderate_content',
-      jumlah: karya.length,
-    },
     {
       id: 'laporan',
       label: 'Laporan pengguna',

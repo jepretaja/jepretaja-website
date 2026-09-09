@@ -16,7 +16,7 @@
 export const SEMUA_STATUS = [
   'draft', 'pending_payment', 'paid', 'confirmed', 'upcoming', 'in_progress',
   'completed', 'customer_confirmed', 'funds_released', 'reviewed',
-  'refund_requested', 'cancelled', 'disputed',
+  'refund_requested', 'cancelled', 'rejected', 'disputed',
 ];
 
 /** Sedang berjalan — sudah dipesan, belum tuntas. */

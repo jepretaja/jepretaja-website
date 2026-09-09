@@ -13,9 +13,9 @@ import { readBody, requireString, notFound, conflict } from '../http.js';
  */
 export const BOOKING_TRANSITIONS = {
   draft: ['pending_payment', 'cancelled'],
-  pending_payment: ['paid', 'cancelled'],
-  paid: ['confirmed', 'cancelled', 'refund_requested'],
-  confirmed: ['upcoming', 'cancelled', 'refund_requested'],
+  pending_payment: ['paid', 'confirmed', 'rejected', 'cancelled'],
+  paid: ['confirmed', 'rejected', 'cancelled', 'refund_requested'],
+  confirmed: ['upcoming', 'rejected', 'cancelled', 'refund_requested'],
   upcoming: ['in_progress', 'cancelled', 'refund_requested'],
   in_progress: ['completed', 'disputed'],
   completed: ['customer_confirmed', 'disputed', 'refund_requested'],
@@ -25,6 +25,7 @@ export const BOOKING_TRANSITIONS = {
   cancelled: [],
   refund_requested: ['cancelled', 'confirmed', 'disputed'],
   disputed: ['funds_released', 'cancelled', 'confirmed'],
+  rejected: [],
 };
 
 export async function adminUpdateBookingStatus(req) {

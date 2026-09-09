@@ -11,7 +11,7 @@ import StatusBadge from '../../components/StatusBadge';
 import ErrorState from '../../components/ErrorState';
 import EmptyState from '../../components/EmptyState';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
-import { cancelBooking, markServiceCompleted, startService } from '../../utils/appActions';
+import { cancelBooking, confirmBooking, markServiceCompleted, startService } from '../../utils/appActions';
 
 /**
  * Daftar aksi yang boleh dilakukan CREATOR pada tiap status.
@@ -26,7 +26,7 @@ import { cancelBooking, markServiceCompleted, startService } from '../../utils/a
  * hanya menghindari tombol yang menyesatkan.
  */
 const AKSI_PER_STATUS = {
-  paid: ['mulai', 'batal'],
+  paid: ['terima', 'batal'],
   confirmed: ['mulai', 'batal'],
   upcoming: ['mulai', 'batal'],
   in_progress: ['selesai'],
@@ -55,6 +55,12 @@ export default function CreatorBookingDetail() {
 
   const jalankan = async (aksi) => {
     const rincian = {
+      terima: {
+        title: 'Terima booking ini?',
+        message: 'Booking akan dikonfirmasi dan pelanggan akan menerima pemberitahuan.',
+        fn: confirmBooking,
+        danger: false,
+      },
       mulai: {
         title: 'Mulai sesi sekarang?',
         message: 'Status booking berubah menjadi "in progress" dan pelanggan akan diberi tahu.',
@@ -102,7 +108,7 @@ export default function CreatorBookingDetail() {
   }
 
   const aksi = AKSI_PER_STATUS[booking.status] || [];
-  const label = { mulai: 'Mulai Sesi', selesai: 'Tandai Selesai', batal: 'Batalkan' };
+  const label = { terima: 'Terima Booking', mulai: 'Mulai Sesi', selesai: 'Tandai Selesai', batal: 'Batalkan' };
 
   return (
     <div>

@@ -1,6 +1,6 @@
 import { HttpError, readBody, requireString } from './_lib/http.js';
 import {
-  createBooking, previewBookingPrice, startService, markServiceCompleted,
+  createBooking, previewBookingPrice, confirmBooking, startService, markServiceCompleted,
   confirmBookingCompletion, cancelBooking, requestRefund, openDispute,
 } from './_lib/actions/appBooking.js';
 import { createPaymentOrder } from './_lib/actions/appPayment.js';
@@ -24,6 +24,7 @@ import { notifyInteraction } from './_lib/actions/appNotify.js';
 const HANDLERS = {
   createBooking,
   previewBookingPrice,
+  confirmBooking,
   startService,
   markServiceCompleted,
   confirmBookingCompletion,

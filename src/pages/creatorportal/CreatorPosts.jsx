@@ -21,9 +21,6 @@ const KOSONG = {
 const TAB = [
   { id: 'semua', label: 'Semua' },
   { id: 'published', label: 'Tayang' },
-  { id: 'pending_review', label: 'Menunggu Tinjauan' },
-  { id: 'rejected', label: 'Ditolak' },
-  { id: 'hidden', label: 'Disembunyikan' },
 ];
 
 const KEBIJAKAN_KOMENTAR = [
@@ -145,15 +142,12 @@ export default function CreatorPosts() {
           creatorId: uid,
           creatorName: creatorProfile?.displayName || null,
           type: 'photo',
-          // Karya baru masuk antrian tinjauan, sama seperti unggahan dari APK.
-          // Nilai ini hanya boleh ditulis saat pembuatan; sesudahnya menjadi
-          // wilayah admin sepenuhnya.
-          status: 'pending_review',
+          status: 'published',
           moderationNote: null,
           metrics: { like: 0, comment: 0, save: 0, view: 0, share: 0 },
           createdAt: serverTimestamp(),
         });
-        setPesan({ tipe: 'sukses', teks: 'Karya terunggah dan masuk antrian tinjauan admin.' });
+        setPesan({ tipe: 'sukses', teks: 'Karya terunggah dan langsung tayang.' });
       }
       setForm(null);
     } catch (err) {

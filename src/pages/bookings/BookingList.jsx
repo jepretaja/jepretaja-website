@@ -20,7 +20,7 @@ import { formatCurrency, formatDate } from '../../utils/format';
 const STATUS_OPTIONS = [
   'all', 'draft', 'pending_payment', 'paid', 'confirmed', 'upcoming',
   'in_progress', 'completed', 'customer_confirmed', 'funds_released',
-  'reviewed', 'cancelled', 'refund_requested', 'disputed',
+  'reviewed', 'cancelled', 'rejected', 'refund_requested', 'disputed',
 ];
 
 /** Booking List (section 29). */

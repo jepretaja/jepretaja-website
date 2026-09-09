@@ -20,6 +20,8 @@ const bind = (action) => (payload) => callApi('/api/app', action, payload);
 
 /** Creator menandai sesi dimulai: status booking -> in_progress. */
 export const startService = bind('startService');
+/** Creator menerima booking yang sudah dibayar: status booking -> confirmed. */
+export const confirmBooking = bind('confirmBooking');
 /** Creator menandai pekerjaan selesai: status booking -> completed. */
 export const markServiceCompleted = bind('markServiceCompleted');
 /** Pembatalan oleh salah satu pihak: status booking -> cancelled. */

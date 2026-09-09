@@ -36,7 +36,6 @@ const GROUPS = [
     label: 'Akun',
     items: [
       { to: '/creator/profile', label: 'Profil Saya', icon: 'user' },
-      { to: '/creator/verification', label: 'Verifikasi Akun', icon: 'verified' },
       { to: '/creator/wallet', label: 'Saldo & Penarikan', icon: 'wallet' },
       { to: '/creator/statistics', label: 'Statistik', icon: 'chart' },
     ],

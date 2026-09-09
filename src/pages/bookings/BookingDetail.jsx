@@ -69,7 +69,7 @@ export default function BookingDetail() {
           {!canManage && <p style={{ fontSize: 12.5, color: 'var(--danger)' }}>Role Anda tidak memiliki izin mengelola booking.</p>}
           {error && <p style={{ fontSize: 12.5, color: 'var(--danger)' }}>{error}</p>}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {['confirmed', 'in_progress', 'completed', 'customer_confirmed', 'cancelled'].map((s) => (
+            {['confirmed', 'rejected', 'in_progress', 'completed', 'customer_confirmed', 'cancelled'].map((s) => (
               <button key={s} className="btn btn-outline btn-sm" disabled={!canManage || processing} onClick={() => setStatus(s)}>
                 {processing === s ? '...' : s}
               </button>
