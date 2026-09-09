@@ -531,6 +531,8 @@ tbody tr:hover { background: var(--surface-subtle); }
 .btn-lg { padding: 12px 24px; font-size: 15px; }
 .btn-ghost { background: rgba(255, 255, 255, 0.08); color: #fff; border-color: rgba(255, 255, 255, 0.2); text-decoration: none; }
 .btn-ghost:hover { background: rgba(255, 255, 255, 0.14); }
+.btn-download { background: #fff; color: var(--sidebar); border-color: #fff; text-decoration: none; }
+.btn-download:hover { background: #eaf1fe; color: var(--sidebar); border-color: #eaf1fe; }
 
 .landing-main { flex: 1; padding: 40px 24px 56px; }
 .landing-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }

@@ -53,6 +53,7 @@ const LABEL_TIPE = {
 const BATAS_STABIL = 1500;
 const BATAS_LAMBAT = 4000;
 const BATAS_TIMEOUT = 8000;
+const APK_DOWNLOAD_URL = '/downloads/jepretaja.apk';
 
 export default function Landing() {
   const [pengumuman, setPengumuman] = useState(PENGUMUMAN_BAWAAN);
@@ -144,6 +145,9 @@ export default function Landing() {
           </p>
           <div className="landing-cta">
             <Link className="btn btn-primary btn-lg" to="/login">Masuk ke Dashboard</Link>
+            <a className="btn btn-download btn-lg" href={APK_DOWNLOAD_URL} download="jepretaja.apk">
+              Unduh APK Android
+            </a>
             <a className="btn btn-ghost btn-lg" href="#panduan">Lihat Panduan</a>
           </div>
         </div>
