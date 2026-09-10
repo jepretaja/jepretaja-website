@@ -47,7 +47,15 @@ function bacaEnv(kunci) {
 }
 
 async function main() {
-  const jenis = (process.argv[2] || 'firestore').toLowerCase();
+  const argumen = (process.argv[2] || 'firestore').toLowerCase();
+  if (argumen === '--help' || argumen === '-h') {
+    console.log('Usage: npm run deploy:rules [storage]');
+    console.log('Default target: firestore.rules');
+    console.log('Storage target: storage.rules');
+    return;
+  }
+
+  const jenis = argumen;
   const target = TARGET[jenis];
   if (!target) throw new Error(`Target "${jenis}" tidak dikenal. Pilih: firestore atau storage.`);
 

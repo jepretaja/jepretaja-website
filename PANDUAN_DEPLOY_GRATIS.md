@@ -41,7 +41,7 @@ Tanpa ini database Anda terbuka atau terkunci total. File `firestore.rules` suda
 ```bash
 npm install -g firebase-tools
 firebase login
-cd jepretaja_admin
+cd jepretaja_website
 firebase deploy --only firestore:rules --project <project-id-anda>
 ```
 
@@ -116,12 +116,18 @@ Isinya seluruh isi file JSON service account dari Bagian 1 langkah 5 — buka fi
 
 > Perhatikan: nama variabel ini **tidak** diawali `VITE_`. Itu disengaja. Variabel berawalan `VITE_` ikut terbundel ke dalam file JavaScript yang diunduh browser — kalau service account key ikut ke sana, siapa pun bisa mengambil kendali penuh atas database Anda.
 
-5. Klik **Deploy**. Vercel akan menjalankan build dan memberikan URL publik seperti `https://nama-project-anda.vercel.app`.
+5. Klik **Deploy**. Vercel akan menjalankan build dan memberikan URL publik proyek, misalnya `https://jepretaja-website.vercel.app`.
 6. Setiap `git push origin main` berikutnya memicu deployment baru secara otomatis. Pull request juga dapat memperoleh Preview Deployment.
 
 ### Setelah deploy
 
-Kembali ke Firebase Console → **Authentication → Settings → Authorized domains** → **Add domain** → masukkan `nama-project-anda.vercel.app`. Tanpa ini login akan ditolak.
+Kembali ke Firebase Console → **Authentication → Settings → Authorized domains** → **Add domain** → masukkan domain Vercel yang benar-benar tercantum di project settings. Tanpa ini login akan ditolak.
+
+Di Vercel, buka **Project Settings → Deployment Protection**. Pengaturan ini
+terpisah dari Firebase Authorized Domains. Saat ini project memakai Vercel
+Authentication dalam keadaan tidak diwajibkan; Password Protection dan Trusted
+IPs memerlukan paket yang lebih tinggi. Jangan mengaktifkan proteksi yang
+membuat URL API atau halaman produksi tidak dapat diakses APK.
 
 Coba buka URL-nya, login dengan email super admin tadi, lalu buka satu halaman yang punya tombol aksi (misalnya Bookings) untuk memastikan `/api/admin` merespons.
 
@@ -283,7 +289,7 @@ memperbarui instalasi sebelumnya; jangan membagikan keystore atau password-nya.
 
 Saya sampaikan apa adanya supaya tidak ada kejutan:
 
-**1. APK masih memanggil Cloud Functions untuk booking & pembayaran.**
+**1. Alur booking & pembayaran APK masih dalam migrasi dari Cloud Functions.**
 `BookingRepository`, `PaymentRepository`, dan `AvailabilityRepository` memanggil 13 callable (`createBooking`, `createPaymentOrder`, `startService`, dan seterusnya) yang belum dipindah ke Vercel. Selama belum dipindah: jelajah, profil creator, chat, dan upload media sudah jalan; pembuatan booking dan pembayaran belum. Solusinya sama seperti yang sudah dilakukan untuk web — tambah aksi di `/api/admin` (atau endpoint baru `/api/app`) lalu ganti `getHttpsCallable(...)` dengan panggilan HTTP.
 
 **2. Payment gateway.**

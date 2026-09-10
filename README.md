@@ -68,20 +68,19 @@ cp .env.example .env
 npm run dev
 ```
 
-Build production:
+Build production untuk Vercel:
 
 ```bash
 npm run build
 ```
 
-Hasil build ada di folder `dist/` — deploy ke Firebase Hosting, Vercel,
-Netlify, atau hosting statis lainnya.
+Hasil build ada di folder `dist/`. Proyek produksi ini memakai Vercel sebagai
+hosting frontend sekaligus serverless API (`/api/app` dan `/api/admin`).
 
 ```bash
-# contoh deploy ke Firebase Hosting
-npm install -g firebase-tools
-firebase init hosting   # pilih folder "dist" sebagai public directory
-firebase deploy --only hosting
+# deploy otomatis melalui Git integration Vercel setelah git push
+# atau gunakan Vercel CLI jika diperlukan:
+npx vercel --prod
 ```
 
 ## Autentikasi & Role Admin
@@ -102,14 +101,16 @@ akun admin pertama:
 
 - Halaman ini membaca/menulis Firestore langsung dari client memakai
   akun admin yang sudah diverifikasi lewat Firestore Security Rules
-  (`isAdminRole()` di `backend/firestore/firestore.rules` pada proyek APK).
+  (`isAdminRole()` di `firestore.rules` pada folder website ini).
   **Pastikan rules tersebut sudah di-deploy** sebelum memakai dashboard ini,
   supaya akun non-admin tidak bisa membaca data sensitif meski tahu URL.
+  Jalankan `npm run deploy:rules` dari folder website setelah memeriksa
+  `.env` lokal, atau gunakan Firebase CLI dengan akun Google Anda.
 - Aksi finansial (approve withdrawal, refund, release funds) di UI ini
-  masih berupa **update status sederhana** sebagai placeholder. Untuk
-  produksi, sambungkan ke Cloud Functions callable (`processWithdrawal`,
-  dst — lihat `backend/functions` di proyek APK) supaya perubahan saldo
-  & ledger tetap atomik dan konsisten dengan sisi APK.
+  diproses oleh Vercel Serverless Function `/api/admin`, yang memverifikasi
+  token Firebase, role, permission, dan transaksi Firestore di server.
+  Jangan memindahkan aksi ini kembali ke update Firestore langsung dari
+  browser.
 - Custom claims (role admin di token Auth, bukan hanya dokumen Firestore)
   disarankan ditambahkan lewat Cloud Function `onAdminUserCreated` agar
   Security Rules bisa memvalidasi role tanpa extra `get()` read setiap kali.
@@ -128,16 +129,12 @@ akun admin pertama:
   di browser, lalu diunggah ke Cloudinary menggunakan unsigned upload preset.
   Cloud name dan preset bersifat publik; API secret tidak boleh dimasukkan ke
   frontend.
-  `firebase deploy --only storage` (berkas `storage.rules`).
-  Kalau proyek belum punya bucket Storage — bucket baru mewajibkan paket Blaze —
-  panel otomatis menyimpan gambar terkompres di dalam dokumen Firestore sebagai
-  data URL, dengan batas total 700 KB per dokumen supaya tidak menabrak batas
-  1 MB per dokumen. Jalur cadangan itu membuat tombol unggah tetap bekerja,
-  tetapi Storage tetap jalur yang disarankan untuk produksi.
+  Firebase Storage bukan jalur upload aktif. Berkas `storage.rules` hanya
+  dipelihara sebagai konfigurasi opsional; deploy jika Storage memang sengaja
+  diaktifkan dengan `npm run deploy:rules:storage`.
 
 ## Yang masih perlu dikerjakan sebelum rilis
 
-- Hubungkan aksi finansial ke Cloud Functions (bukan update Firestore langsung)
 - Custom claims admin + proteksi rules yang lebih ketat
 - Export laporan (CSV/PDF) untuk Analytics & Transactions
 - Pagination untuk tabel dengan data besar (saat ini load semua dokumen)

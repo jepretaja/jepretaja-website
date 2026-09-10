@@ -141,7 +141,7 @@ Sumber angkanya:
   di dalam `NotificationsViewModel` dipindah ke sini supaya badge dan layar
   Notifikasi memakai sumber yang sama.
 
-**Di server (jepretaja_admin)**
+**Di server (jepretaja_website)**
 
 Koleksi `notifications` sebelumnya tidak pernah ditulis siapa pun, jadi badge
 lonceng akan selamanya 0. Sekarang `api/_lib/notify.js` menulis notifikasi pada

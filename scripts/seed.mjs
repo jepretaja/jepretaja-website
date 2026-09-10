@@ -13,7 +13,7 @@
  * Nama field & koleksi mengikuti persis model di aplikasi Android
  * (FirestorePaths.kt) dan kolom yang dibaca tiap halaman panel.
  *
- * Cara pakai (dari folder jepretaja_admin):
+ * Cara pakai (dari folder jepretaja_website):
  *   npm run seed          -> tambah/timpa data contoh
  *   npm run seed:hapus    -> hapus lagi semua data contoh
  *

@@ -116,15 +116,20 @@ function keBlob(canvas, mime, mutu) {
  *
  * @returns {Promise<{blob: Blob, lebar: number, tinggi: number}>}
  */
-export async function kompresGambar(file, { sisiMaks = 1600, targetByte = 400 * 1024 } = {}) {
+export async function kompresGambar(file, { sisiMaks = 1920, targetByte = 400 * 1024, rasio = 16 / 9 } = {}) {
   const sumber = await muatGambar(file);
   const lebarAsli = sumber.width;
   const tinggiAsli = sumber.height;
   if (!lebarAsli || !tinggiAsli) throw new Error('Ukuran gambar tidak terbaca.');
 
-  const skala = Math.min(1, sisiMaks / Math.max(lebarAsli, tinggiAsli));
-  const lebar = Math.max(1, Math.round(lebarAsli * skala));
-  const tinggi = Math.max(1, Math.round(tinggiAsli * skala));
+  const rasioAsli = lebarAsli / tinggiAsli;
+  const lebarCrop = rasioAsli > rasio ? Math.round(tinggiAsli * rasio) : lebarAsli;
+  const tinggiCrop = rasioAsli > rasio ? tinggiAsli : Math.round(lebarAsli / rasio);
+  const xCrop = Math.max(0, Math.round((lebarAsli - lebarCrop) / 2));
+  const yCrop = Math.max(0, Math.round((tinggiAsli - tinggiCrop) / 2));
+  const skala = Math.min(1, sisiMaks / lebarCrop);
+  const lebar = Math.max(1, Math.round(lebarCrop * skala));
+  const tinggi = Math.max(1, Math.round(tinggiCrop * skala));
 
   const canvas = document.createElement('canvas');
   canvas.width = lebar;
@@ -135,7 +140,7 @@ export async function kompresGambar(file, { sisiMaks = 1600, targetByte = 400 * 
   // gambarnya rusak, bukan seperti hasil kompresi.
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, lebar, tinggi);
-  ctx.drawImage(sumber, 0, 0, lebar, tinggi);
+  ctx.drawImage(sumber, xCrop, yCrop, lebarCrop, tinggiCrop, 0, 0, lebar, tinggi);
   if (typeof sumber.close === 'function') sumber.close();
 
   let blob = null;

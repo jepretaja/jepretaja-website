@@ -9,11 +9,14 @@
     "preview": "vite preview",
     "seed": "node scripts/seed.mjs",
     "seed:hapus": "node scripts/seed.mjs --hapus",
-    "cleanup:production": "node scripts/cleanupProduction.mjs"
+    "cleanup:production": "node scripts/cleanupProduction.mjs",
+    "deploy:rules": "node scripts/deployRules.mjs",
+    "deploy:rules:storage": "node scripts/deployRules.mjs storage"
   },
   "dependencies": {
     "firebase": "^10.14.1",
     "firebase-admin": "^13.10.0",
+    "google-auth-library": "^9.15.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",
