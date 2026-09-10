@@ -125,7 +125,9 @@ akun admin pertama:
   ini ada). Deploy ulang rules setelahnya: `firebase deploy --only firestore:rules`.
 - **Unggah foto** (portfolio, foto profil, dokumen verifikasi) memakai
   `components/ImagePicker.jsx`: berkas dipilih langsung dari perangkat, dikecilkan
-  di browser, lalu diunggah ke Firebase Storage. Deploy aturannya dengan
+  di browser, lalu diunggah ke Cloudinary menggunakan unsigned upload preset.
+  Cloud name dan preset bersifat publik; API secret tidak boleh dimasukkan ke
+  frontend.
   `firebase deploy --only storage` (berkas `storage.rules`).
   Kalau proyek belum punya bucket Storage — bucket baru mewajibkan paket Blaze —
   panel otomatis menyimpan gambar terkompres di dalam dokumen Firestore sebagai

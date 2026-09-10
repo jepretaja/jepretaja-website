@@ -15,7 +15,7 @@ import { byNewest } from '../../utils/sort';
 
 const KOSONG = {
   caption: '', category: '', location: '', tags: '',
-  media: [], commentPolicy: 'all', allowSave: true,
+  media: [], type: 'photo', commentPolicy: 'all', allowSave: true,
 };
 
 const TAB = [
@@ -97,6 +97,7 @@ export default function CreatorPosts() {
       location: p.location || '',
       tags: (p.tags || []).join(', '),
       media: [...(p.mediaUrls || [])],
+      type: p.type || 'photo',
       commentPolicy: p.commentPolicy || 'all',
       allowSave: p.allowSave !== false,
     });
@@ -123,6 +124,7 @@ export default function CreatorPosts() {
       location: form.location.trim() || null,
       tags: form.tags.split(',').map((s) => s.trim().replace(/^#/, '')).filter(Boolean),
       mediaUrls: media,
+      type: form.type || 'photo',
       thumbnailUrl: media[0],
       commentPolicy: form.commentPolicy,
       allowSave: form.allowSave,
@@ -141,7 +143,6 @@ export default function CreatorPosts() {
           ...isi,
           creatorId: uid,
           creatorName: creatorProfile?.displayName || null,
-          type: 'photo',
           status: 'published',
           moderationNote: null,
           metrics: { like: 0, comment: 0, save: 0, view: 0, share: 0 },
@@ -207,10 +208,12 @@ export default function CreatorPosts() {
               label="Foto Karya"
               multiple
               max={10}
+              izinkanVideo
               folder={`explore/${uid}`}
               value={form.media}
               onChange={(media) => setForm({ ...form, media })}
-              hint="Pilih dari galeri atau potret langsung. Foto pertama menjadi sampul di feed."
+              onMediaTypeChange={(type) => setForm((sebelumnya) => ({ ...sebelumnya, type }))}
+              hint="Pilih foto atau video dari perangkat. Media pertama menjadi sampul di feed."
             />
           </div>
 
@@ -308,7 +311,7 @@ export default function CreatorPosts() {
           {daftar.map((p) => (
             <div className="card media-card" key={p.id}>
               {p.mediaUrls?.[0] ? (
-                <img className="media-thumb" src={p.thumbnailUrl || p.mediaUrls[0]} alt=""
+                p.type === 'video' ? <video className="media-thumb" src={p.mediaUrls[0]} controls preload="metadata" /> : <img className="media-thumb" src={p.thumbnailUrl || p.mediaUrls[0]} alt=""
                   onError={(e) => { e.target.style.visibility = 'hidden'; }} />
               ) : (
                 <div className="media-thumb" style={{ display: 'grid', placeItems: 'center', color: 'var(--text-secondary)' }}>
@@ -318,7 +321,7 @@ export default function CreatorPosts() {
 
               <div className="media-meta">
                 <StatusBadge status={p.status} />
-                <span className="text-meta">{(p.mediaUrls || []).length} foto</span>
+                <span className="text-meta">{(p.mediaUrls || []).length} {p.type === 'video' ? 'video' : 'foto'}</span>
               </div>
 
               <div className="media-caption">{p.caption || '(tanpa caption)'}</div>

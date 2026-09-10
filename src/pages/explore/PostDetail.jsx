@@ -58,9 +58,12 @@ export default function PostDetail() {
       <div className="breadcrumb"><Link to="/explore">Explore Content</Link> / Post Detail</div>
       <div className="grid grid-2">
         <div className="card">
-          {post.mediaUrls?.[0] && (
+          {post.mediaUrls?.[0] && (post.type === 'video' ? (
+            <video controls preload="metadata" src={post.mediaUrls[0]} poster={post.thumbnailUrl || undefined}
+              style={{ width: '100%', borderRadius: 10, marginBottom: 14, maxHeight: 360, objectFit: 'cover' }} />
+          ) : (
             <img src={post.thumbnailUrl || post.mediaUrls[0]} alt="" style={{ width: '100%', borderRadius: 10, marginBottom: 14, maxHeight: 360, objectFit: 'cover' }} />
-          )}
+          ))}
           <div className="detail-row"><span className="k">Creator</span><span className="v">{post.creatorName}</span></div>
           <div className="detail-row"><span className="k">Kategori</span><span className="v">{post.category}</span></div>
           <div className="detail-row"><span className="k">Lokasi</span><span className="v">{post.location || '-'}</span></div>

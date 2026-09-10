@@ -38,9 +38,9 @@ service firebase.storage {
     // kuota, dan berkas yang mengaku gambar padahal bukan. Panel sudah
     // mengompres di browser sampai ratusan kilobita, jadi 6 MB hanyalah pagar
     // untuk unggahan yang tidak lewat panel.
-    function gambarWajar() {
-      return request.resource.size < 6 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+    function mediaWajar() {
+      return request.resource.size < 100 * 1024 * 1024
+        && request.resource.contentType.matches('(image|video)/.*');
     }
 
     // ---------- Etalase publik ----------
@@ -49,13 +49,13 @@ service firebase.storage {
     // koleksi creators dan portfolios di firestore.rules.
     match /portfolios/{uid}/{berkas} {
       allow read: if true;
-      allow write: if (pemilik(uid) || isAdmin()) && gambarWajar();
+      allow write: if (pemilik(uid) || isAdmin()) && mediaWajar();
       allow delete: if pemilik(uid) || isAdmin();
     }
 
     match /profiles/{uid}/{berkas} {
       allow read: if true;
-      allow write: if (pemilik(uid) || isAdmin()) && gambarWajar();
+      allow write: if (pemilik(uid) || isAdmin()) && mediaWajar();
       allow delete: if pemilik(uid) || isAdmin();
     }
 
@@ -64,7 +64,7 @@ service firebase.storage {
     // `status` pada dokumennya, bukan kerahasiaan berkasnya.
     match /explore/{uid}/{berkas} {
       allow read: if true;
-      allow write: if (pemilik(uid) || isAdmin()) && gambarWajar();
+      allow write: if (pemilik(uid) || isAdmin()) && mediaWajar();
       allow delete: if pemilik(uid) || isAdmin();
     }
 

@@ -1,30 +1,11 @@
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { app } from './config';
-
 /**
- * Unggahan berkas ke Firebase Storage.
- *
- * KEADAAN YANG PERLU DIKETAHUI: sejak Oktober 2024 Firebase mewajibkan paket
- * Blaze untuk MENYIAPKAN bucket Storage baru, sementara seluruh proyek ini
- * dirancang berjalan di paket gratis (lihat catatan yang sama di
- * utils/adminActions.js). Bucket yang sudah terlanjur ada tetap bisa dipakai,
- * jadi kemampuan ini tidak bisa disimpulkan dari konfigurasi — hanya bisa
- * dibuktikan dengan mencoba mengunggah.
- *
- * Karena itu fungsi di sini TIDAK pernah menyembunyikan kegagalan: pemanggil
- * (components/ImagePicker.jsx) yang memutuskan apa yang terjadi berikutnya,
- * yaitu menyimpan gambarnya langsung di dalam dokumen Firestore. Yang penting
- * bagi pengguna, tombol "pilih foto" tetap bekerja di kedua keadaan.
- */
-
-/**
- * Firebase Storage sengaja nonaktif secara default. APK memakai Cloudinary,
- * sedangkan website menyimpan gambar kecil langsung di dokumen Firestore.
- * Bucket hanya dipakai bila diaktifkan secara eksplisit.
+ * Cloudinary unsigned upload untuk foto dan video.
+ * Cloud name dan upload preset memang publik; API secret tidak boleh berada di
+ * browser. Folder tetap dikirim agar media creator mudah dikelola di dashboard.
  */
 export function storageTersedia() {
-  return import.meta.env.VITE_USE_FIREBASE_STORAGE === 'true'
-    && Boolean(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET);
+  return Boolean(import.meta.env.VITE_CLOUDINARY_CLOUD_NAME)
+    && Boolean(import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
 }
 
 /**
@@ -33,17 +14,8 @@ export function storageTersedia() {
  * inilah beralih ke penyimpanan di dalam dokumen masuk akal; masalah jaringan
  * sesaat justru lebih baik ditampilkan apa adanya supaya bisa dicoba ulang.
  */
-const GALAT_TIDAK_TERSEDIA = [
-  'storage/unauthorized',
-  'storage/unauthenticated',
-  'storage/project-not-found',
-  'storage/bucket-not-found',
-  'storage/unknown',
-  'storage/invalid-argument',
-];
-
 export function storageTidakTersedia(err) {
-  return GALAT_TIDAK_TERSEDIA.includes(err?.code);
+  return err?.code === 'cloudinary-not-configured';
 }
 
 /** Nama berkas yang tidak bisa saling menimpa walau dua orang mengunggah
@@ -58,9 +30,29 @@ function namaBerkas(ekstensi = 'jpg') {
  * @param {string} folder mis. 'portfolios/<uid>' — harus cocok dengan storage.rules
  * @returns {Promise<string>} URL unduhan yang bisa dipakai <img src> dan APK
  */
-export async function unggahGambar(blob, folder) {
-  const storage = getStorage(app);
-  const berkasRef = ref(storage, `${folder}/${namaBerkas()}`);
-  await uploadBytes(berkasRef, blob, { contentType: blob.type || 'image/jpeg' });
-  return getDownloadURL(berkasRef);
+export async function unggahBerkas(blob, folder) {
+  if (!storageTersedia()) {
+    const error = new Error('Cloudinary belum dikonfigurasi. Isi VITE_CLOUDINARY_CLOUD_NAME dan VITE_CLOUDINARY_UPLOAD_PRESET.');
+    error.code = 'cloudinary-not-configured';
+    throw error;
+  }
+
+  const resourceType = blob.type.startsWith('video/') ? 'video' : 'image';
+  const endpoint = `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
+  const body = new FormData();
+  body.append('file', blob, namaBerkas(blob.type.split('/')[1] || 'bin'));
+  body.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+  body.append('folder', `jepretaja/${folder}`);
+
+  const response = await fetch(endpoint, { method: 'POST', body });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.secure_url) {
+    const detail = result.error?.message || `Cloudinary gagal mengunggah media (${response.status}).`;
+    const error = new Error(detail);
+    error.code = 'cloudinary-upload-failed';
+    throw error;
+  }
+  return result.secure_url;
 }
+
+export const unggahGambar = unggahBerkas;

@@ -1,13 +1,22 @@
 import { adminDb, FieldValue } from '../firebaseAdmin.js';
 import { requireUser } from '../authUser.js';
-import { readBody, requireString, notFound, conflict, forbidden } from '../http.js';
+import { readBody, requireString, notFound, conflict, forbidden, HttpError } from '../http.js';
+
+const MIDTRANS_ENDPOINT = process.env.MIDTRANS_ENV === 'production'
+  ? 'https://app.midtrans.com/snap/v1/transactions'
+  : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+
+function midtransAuth() {
+  const key = process.env.MIDTRANS_SERVER_KEY;
+  if (!key) throw new HttpError(500, 'midtrans-not-configured', 'Pembayaran sedang dikonfigurasi. Coba lagi nanti.');
+  return `Basic ${Buffer.from(`${key}:`).toString('base64')}`;
+}
 
 /**
  * Membuat order pembayaran untuk sebuah booking.
  *
- * Saat ini memakai alur TRANSFER MANUAL: server menerbitkan instruksi
- * transfer beserta kode unik, lalu admin memverifikasi bukti transfer di
- * panel web. Payment gateway (Midtrans/Xendit) belum tersambung.
+ * Membuat transaksi Midtrans Snap. Server Key hanya berada di Vercel; aplikasi
+ * menerima snapToken/redirectUrl dan tidak pernah menerima kredensial rahasia.
  *
  * Nilai yang ditagih diambil dari dokumen booking di Firestore, tidak
  * pernah dari body request — kalau tidak, nominal bisa diubah dari sisi
@@ -20,86 +29,49 @@ export async function createPaymentOrder(req) {
 
   const db = adminDb();
   const bookingRef = db.collection('bookings').doc(bookingId);
+  const snap = await bookingRef.get();
+  if (!snap.exists) throw notFound('Booking tidak ditemukan.');
+  const booking = snap.data();
+  if (booking.customerId !== actor.uid) throw forbidden('Booking ini bukan milik Anda.');
+  if (booking.status !== 'pending_payment') throw conflict(`Booking berstatus "${booking.status}", tidak menunggu pembayaran.`);
+
+  if (booking.paymentId) {
+    const existing = await db.collection('payments').doc(booking.paymentId).get();
+    const old = existing.data();
+    if (old?.provider === 'midtrans' && old.snapToken && ['pending', 'settlement', 'capture'].includes(old.status)) {
+      return { paymentId: existing.id, orderId: old.orderId, amount: old.amount, snapToken: old.snapToken, redirectUrl: old.redirectUrl, clientKey: process.env.MIDTRANS_CLIENT_KEY || '' };
+    }
+  }
+
   const paymentRef = db.collection('payments').doc();
+  const orderId = `JEP-${bookingId}-${paymentRef.id.slice(0, 8)}`;
+  const amount = Number(booking.total) || 0;
+  if (amount <= 0) throw conflict('Total booking tidak valid untuk pembayaran.');
 
-  const hasil = await db.runTransaction(async (tx) => {
-    const snap = await tx.get(bookingRef);
-    if (!snap.exists) throw notFound('Booking tidak ditemukan.');
-    const booking = snap.data();
-
-    if (booking.customerId !== actor.uid) throw forbidden('Booking ini bukan milik Anda.');
-    if (booking.status !== 'pending_payment') {
-      throw conflict(`Booking berstatus "${booking.status}", tidak menunggu pembayaran.`);
-    }
-
-    // Kalau sudah pernah dibuat dan masih berlaku, kembalikan yang lama
-    // supaya pengguna tidak mendapat kode unik berbeda setiap kali menekan
-    // tombol bayar — itu membuat nominal transfer jadi tidak cocok.
-    const adaQ = db.collection('payments')
-      .where('bookingId', '==', bookingId)
-      .where('status', '==', 'awaiting_transfer');
-    const ada = await tx.get(adaQ);
-    if (!ada.empty) {
-      const paymentDoc = ada.docs[0];
-      const lama = paymentDoc.data();
-      const expiresAtMillis = lama.expiresAt?.toMillis?.() ?? new Date(lama.expiresAt || 0).getTime();
-      if (expiresAtMillis > Date.now()) {
-        return { paymentId: paymentDoc.id, ...lama, reused: true };
-      }
-
-      // Jangan mengembalikan instruksi transfer yang sudah kedaluwarsa.
-      // Tandai order lama agar riwayat pembayaran tetap audit-able, lalu
-      // lanjutkan membuat instruksi baru dalam transaksi yang sama.
-      tx.update(paymentDoc.ref, {
-        status: 'expired',
-        expiredAt: FieldValue.serverTimestamp(),
-      });
-    }
-
-    // settings/general — dokumen yang sama dengan form Pengaturan di panel
-    // admin. Dulu membaca settings/platform, jadi nomor rekening tujuan
-    // transfer selalu kosong dan instruksinya tampil sebagai "BCA / -".
-    const settings = await tx.get(db.collection('settings').doc('general'));
-    const s = settings.data() || {};
-
-    // Kode unik 3 digit untuk mencocokkan transfer masuk secara otomatis.
-    const kodeUnik = Math.floor(Math.random() * 900) + 100;
-    const jumlahTransfer = (Number(booking.total) || 0) + kodeUnik;
-    const kedaluwarsa = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    const payment = {
-      paymentId: paymentRef.id,
-      bookingId,
-      customerId: actor.uid,
-      creatorId: booking.creatorId,
-      method: 'manual_transfer',
-      amount: Number(booking.total) || 0,
-      uniqueCode: kodeUnik,
-      transferAmount: jumlahTransfer,
-      bankName: s.payoutBankName || 'BCA',
-      bankAccountNumber: s.payoutAccountNumber || '-',
-      bankAccountName: s.payoutAccountName || 'JepretAja',
-      status: 'awaiting_transfer',
-      expiresAt: kedaluwarsa,
-      createdAt: FieldValue.serverTimestamp(),
-    };
-
-    tx.set(paymentRef, payment);
-    tx.update(bookingRef, { paymentId: paymentRef.id, updatedAt: FieldValue.serverTimestamp() });
-    return { ...payment, reused: false };
+  const response = await fetch(MIDTRANS_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: midtransAuth(), 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      transaction_details: { order_id: orderId, gross_amount: amount },
+      item_details: [{ id: booking.packageId || bookingId, price: amount, quantity: 1, name: booking.packageName || 'Booking JepretAja' }],
+      customer_details: { first_name: actor.email?.split('@')[0] || 'Pelanggan', email: actor.email || undefined },
+      callbacks: { finish: `${process.env.APP_PUBLIC_URL || ''}/payment/${bookingId}/result` },
+    }),
   });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.token) {
+    throw new HttpError(502, 'midtrans-error', result.error_messages?.join(' ') || 'Midtrans gagal membuat transaksi.');
+  }
 
-  return {
-    paymentId: hasil.paymentId,
-    method: 'manual_transfer',
-    amount: hasil.amount,
-    uniqueCode: hasil.uniqueCode,
-    transferAmount: hasil.transferAmount,
-    bankName: hasil.bankName,
-    bankAccountNumber: hasil.bankAccountNumber,
-    bankAccountName: hasil.bankAccountName,
-    expiresAt: hasil.expiresAt?.toMillis ? hasil.expiresAt.toMillis() : new Date(hasil.expiresAt).getTime(),
-    instruction: `Transfer tepat Rp${hasil.transferAmount.toLocaleString('id-ID')} ` +
-      `(termasuk kode unik ${hasil.uniqueCode}) agar pembayaran terverifikasi otomatis.`,
+  const payment = {
+    paymentId: paymentRef.id, bookingId, customerId: actor.uid, creatorId: booking.creatorId,
+    provider: 'midtrans', method: 'snap', orderId, amount,
+    snapToken: result.token, redirectUrl: result.redirect_url || null,
+    status: 'pending', expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    createdAt: FieldValue.serverTimestamp(),
   };
+  await paymentRef.set(payment);
+  await bookingRef.update({ paymentId: paymentRef.id, updatedAt: FieldValue.serverTimestamp() });
+
+  return { paymentId: paymentRef.id, orderId, amount, snapToken: result.token, redirectUrl: result.redirect_url || null, clientKey: process.env.MIDTRANS_CLIENT_KEY || '' };
 }

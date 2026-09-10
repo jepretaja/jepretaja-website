@@ -16,6 +16,7 @@
 /** Berkas mentah yang lebih besar dari ini ditolak sebelum dibaca; membaca
  *  berkas 100 MB ke memori browser ponsel bisa membuat tabnya mati. */
 export const UKURAN_BERKAS_MAKS = 15 * 1024 * 1024;
+export const UKURAN_VIDEO_MAKS = 100 * 1024 * 1024;
 
 /**
  * Format yang pasti bisa digambar ulang ke canvas oleh semua browser.
@@ -41,6 +42,21 @@ export function periksaBerkasGambar(file) {
     return `"${file.name}" berukuran ${formatUkuran(file.size)} — maksimal ${formatUkuran(UKURAN_BERKAS_MAKS)}.`;
   }
   return null;
+}
+
+export function periksaBerkasMedia(file, izinkanVideo = false) {
+  if (!file) return 'Berkas tidak terbaca.';
+  if (file.type.startsWith('video/')) {
+    if (!izinkanVideo) return `"${file.name}" adalah video, sedangkan kolom ini hanya menerima foto.`;
+    if (!['video/mp4', 'video/webm', 'video/quicktime'].includes(file.type)) {
+      return `Format video ${file.type.replace('video/', '').toUpperCase()} belum didukung. Gunakan MP4, WebM, atau MOV.`;
+    }
+    if (file.size > UKURAN_VIDEO_MAKS) {
+      return `"${file.name}" berukuran ${formatUkuran(file.size)} — maksimal ${formatUkuran(UKURAN_VIDEO_MAKS)}.`;
+    }
+    return null;
+  }
+  return periksaBerkasGambar(file);
 }
 
 export function formatUkuran(byte) {

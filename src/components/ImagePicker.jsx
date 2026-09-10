@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react';
-import { storageTersedia, storageTidakTersedia, unggahGambar } from '../firebase/storage';
+import { storageTersedia, storageTidakTersedia, unggahBerkas } from '../firebase/storage';
 import {
-  adalahDataUrl, blobKeDataUrl, formatUkuran, kompresGambar, periksaBerkasGambar, ukuranDataUrl,
+  adalahDataUrl, blobKeDataUrl, formatUkuran, kompresGambar, periksaBerkasMedia, ukuranDataUrl,
 } from '../utils/imageFile';
 
 /**
@@ -48,6 +48,8 @@ export default function ImagePicker({
   // Ambang aman untuk gambar tertanam. Sisa ~300 KB dari batas 1 MB
   // disediakan untuk isi dokumen yang lain.
   batasTertanam = 700 * 1024,
+  izinkanVideo = false,
+  onMediaTypeChange,
 }) {
   const idBerkas = useId();
   const inputBerkas = useRef(null);
@@ -96,7 +98,7 @@ export default function ImagePicker({
     let besarTertanamBaru = 0;
 
     for (const file of antre) {
-      const salah = periksaBerkasGambar(file);
+      const salah = periksaBerkasMedia(file, izinkanVideo);
       if (salah) {
         masalah.push(salah);
         setProgres((p) => ({ ...p, selesai: p.selesai + 1 }));
@@ -104,10 +106,19 @@ export default function ImagePicker({
       }
 
       try {
+        if (file.type.startsWith('video/')) {
+          if (!storageTersedia()) {
+            throw new Error('Video membutuhkan Firebase Storage. Aktifkan VITE_USE_FIREBASE_STORAGE=true dan deploy storage.rules.');
+          }
+          hasil.push(await unggahBerkas(file, folder));
+          onMediaTypeChange?.('video');
+          setProgres((p) => ({ ...p, selesai: p.selesai + 1 }));
+          continue;
+        }
         if (!pakaiTertanam) {
           const { blob } = await kompresGambar(file, { sisiMaks, targetByte });
           try {
-            hasil.push(await unggahGambar(blob, folder));
+            hasil.push(await unggahBerkas(blob, folder));
             setProgres((p) => ({ ...p, selesai: p.selesai + 1 }));
             continue;
           } catch (err) {
@@ -197,7 +208,7 @@ export default function ImagePicker({
             id={idBerkas}
             ref={inputBerkas}
             type="file"
-            accept="image/*"
+            accept={izinkanVideo ? 'image/*,video/mp4,video/webm,video/quicktime' : 'image/*'}
             multiple={multiple}
             hidden
             onChange={(e) => prosesBerkas(e.target.files)}
@@ -217,8 +228,8 @@ export default function ImagePicker({
           <div className="pemilih-glif">🖼</div>
           <div className="pemilih-ajakan">
             {sibuk
-              ? `Memproses ${progres?.selesai ?? 0} dari ${progres?.total ?? 0} foto...`
-              : 'Tarik foto ke sini, tempel, atau'}
+              ? `Memproses ${progres?.selesai ?? 0} dari ${progres?.total ?? 0} media...`
+              : `Tarik ${izinkanVideo ? 'foto atau video' : 'foto'} ke sini, tempel, atau`}
           </div>
           {!sibuk && (
             <div className="pemilih-tombol">
@@ -231,7 +242,7 @@ export default function ImagePicker({
             </div>
           )}
           <div className="text-meta" style={{ marginTop: 8 }}>
-            {hint || `JPG, PNG, atau WEBP. Foto besar otomatis dikecilkan sebelum diunggah${multiple ? `, maksimal ${max} foto` : ''}.`}
+            {hint || `${izinkanVideo ? 'JPG, PNG, WEBP, MP4, WebM, atau MOV' : 'JPG, PNG, atau WEBP'}. Foto besar otomatis dikecilkan sebelum diunggah${multiple ? `, maksimal ${max} media` : ''}.`}
           </div>
         </div>
       )}
@@ -242,11 +253,9 @@ export default function ImagePicker({
         <div className="pemilih-daftar">
           {daftar.map((gambar, i) => (
             <div className="pemilih-item" key={`${gambar.slice(0, 40)}-${i}`}>
-              <img
-                src={gambar}
-                alt=""
-                onError={(e) => { e.target.classList.add('gagal'); }}
-              />
+              {izinkanVideo && /\.(mp4|webm|mov)(\?|$)/i.test(gambar)
+                ? <video src={gambar} controls preload="metadata" />
+                : <img src={gambar} alt="" onError={(e) => { e.target.classList.add('gagal'); }} />}
               <div className="pemilih-item-aksi" hidden={disabled}>
                 {multiple && i > 0 && (
                   <button type="button" className="btn btn-outline btn-sm" onClick={() => jadikanSampul(i)}>
