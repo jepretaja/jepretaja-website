@@ -63,6 +63,11 @@ export async function confirmManualPayment(req) {
     const feePercent = Number(booking.priceBreakdown?.platformFeePercent) || 0;
     const platformFee = Number(booking.priceBreakdown?.platformFee) || Math.floor((amount * feePercent) / 100);
     const creatorShare = Math.max(0, amount - platformFee);
+    const walletRef = db.collection('wallets').doc(booking.creatorId);
+    const walletSnap = await tx.get(walletRef);
+    const wallet = walletSnap.data() || {};
+    const pendingBefore = Number(wallet.pendingBalance) || 0;
+    const pendingAfter = pendingBefore + creatorShare;
 
     tx.update(payRef, {
       status: 'paid',
@@ -75,6 +80,28 @@ export async function confirmManualPayment(req) {
       status: 'paid',
       paidAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // Dana creator dicatat sebagai pending sejak pembayaran diverifikasi.
+    // Sebelumnya escrow hanya dibuat tanpa menaikkan pendingBalance, sehingga
+    // dispute/release berikutnya bisa mengurangi saldo yang sebenarnya nol.
+    tx.set(walletRef, {
+      creatorId: booking.creatorId,
+      pendingBalance: pendingAfter,
+      availableBalance: Number(wallet.availableBalance) || 0,
+      totalEarnings: Number(wallet.totalEarnings) || 0,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    tx.set(db.collection('wallet_transactions').doc(), {
+      creatorId: booking.creatorId,
+      referenceId: pay.bookingId,
+      type: 'escrow_hold',
+      amount: creatorShare,
+      balanceBefore: pendingBefore,
+      balanceAfter: pendingAfter,
+      status: 'held',
+      note: 'Dana ditahan setelah pembayaran diverifikasi.',
+      createdAt: FieldValue.serverTimestamp(),
     });
 
     // Escrow: dana ditahan atas nama creator, belum bisa ditarik.
