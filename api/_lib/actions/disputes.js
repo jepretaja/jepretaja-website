@@ -28,6 +28,19 @@ function payoutAmount(booking, escrow) {
   return Number(booking?.total) || 0;
 }
 
+export function calculateDisputeAmounts(held, pendingBefore, toCustomer) {
+  const toCreator = Math.max(0, held - toCustomer);
+  const pendingDeduct = Math.min(held, Math.max(0, pendingBefore));
+  const creatorFromPending = Math.min(toCreator, pendingDeduct);
+  const customerFromPending = Math.min(toCustomer, Math.max(0, pendingDeduct - creatorFromPending));
+  return {
+    toCreator,
+    pendingAfter: Math.max(0, pendingBefore) - pendingDeduct,
+    creatorFromPending,
+    customerFromPending,
+  };
+}
+
 export async function resolveDispute(req) {
   const actor = await requireAdmin(req, 'manage_dispute');
   const body = readBody(req);
@@ -100,15 +113,11 @@ export async function resolveDispute(req) {
       }
       toCustomer = refundAmount;
     }
-    const toCreator = held - toCustomer;
-
     const pendingBefore = Number(wallet.pendingBalance) || 0;
     const availableBefore = Number(wallet.availableBalance) || 0;
-    // Clamp: kalau data lama membuat pendingBalance lebih kecil dari dana yang
-    // ditahan, jangan sampai saldo jadi negatif.
-    const pendingDeduct = Math.min(held, pendingBefore);
-    const pendingAfter = pendingBefore - pendingDeduct;
-    const availableAfter = availableBefore + toCreator;
+    const { toCreator, pendingAfter, creatorFromPending, customerFromPending } =
+      calculateDisputeAmounts(held, pendingBefore, toCustomer);
+      const availableAfter = availableBefore + creatorFromPending;
 
     // ---- Fase tulis ----
     tx.update(walletRef, {
@@ -117,13 +126,13 @@ export async function resolveDispute(req) {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    if (toCreator > 0) {
+    if (creatorFromPending > 0) {
       const ledgerRef = db.collection('wallet_transactions').doc();
       tx.set(ledgerRef, {
         creatorId,
         referenceId: bookingId,
         type: 'credit',
-        amount: toCreator,
+          amount: creatorFromPending,
         balanceBefore: availableBefore,
         balanceAfter: availableAfter,
         status: 'success',
@@ -147,13 +156,13 @@ export async function resolveDispute(req) {
         createdAt: FieldValue.serverTimestamp(),
       });
       // Ledger debit dicatat hanya jika dana memang pernah masuk pending.
-      if (pendingDeduct > 0) {
+            if (customerFromPending > 0) {
         const ledgerRef = db.collection('wallet_transactions').doc();
         tx.set(ledgerRef, {
           creatorId,
           referenceId: bookingId,
           type: 'refund',
-          amount: -toCustomer,
+            amount: -customerFromPending,
           balanceBefore: pendingBefore,
           balanceAfter: pendingAfter,
           status: 'success',
@@ -195,9 +204,9 @@ export async function resolveDispute(req) {
       targetType: 'dispute',
       targetId: disputeId,
       reason: note,
-      metadata: { bookingId, creatorId, held, toCreator, toCustomer, pendingBefore, pendingAfter, availableBefore, availableAfter },
+        metadata: { bookingId, creatorId, held, toCreator, toCustomer, creatorFromPending, customerFromPending, pendingBefore, pendingAfter, availableBefore, availableAfter },
     }, tx);
 
-    return { disputeId, decision, toCreator, toCustomer };
+      return { disputeId, decision, toCreator: creatorFromPending, toCustomer };
   });
 }
