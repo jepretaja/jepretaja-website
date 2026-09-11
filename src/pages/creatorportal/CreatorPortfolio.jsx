@@ -24,7 +24,7 @@ const KOSONG = { title: '', category: '', media: [] };
  * Storage kalau tersedia, dan kalau tidak, gambar terkompres ditanam langsung
  * di dalam dokumen.
  */
-export default function CreatorPortfolio() {
+export default function CreatorPortfolio({ embedded = false }) {
   const { user } = useAuth();
   const uid = user?.uid;
   const { data, loading, error } = useCollection(
@@ -89,10 +89,14 @@ export default function CreatorPortfolio() {
   return (
     <div>
       {dialog}
-      <h1 className="page-title">Portfolio</h1>
-      <p className="text-meta" style={{ marginBottom: 16 }}>
-        Album karya yang tampil di profil Anda pada aplikasi.
-      </p>
+      {!embedded && (
+        <>
+          <h1 className="page-title">Portfolio</h1>
+          <p className="text-meta" style={{ marginBottom: 16 }}>
+            Album karya yang tampil di profil Anda pada aplikasi.
+          </p>
+        </>
+      )}
 
       {pesan && (
         <div className={`card ${pesan.tipe === 'sukses' ? 'banner-success' : 'banner-danger'}`}>

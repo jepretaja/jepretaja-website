@@ -12,6 +12,7 @@ import ErrorState from '../../components/ErrorState';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { formatDateTime, compactNumber } from '../../utils/format';
 import { byNewest } from '../../utils/sort';
+import CreatorPortfolio from './CreatorPortfolio';
 
 const KOSONG = {
   caption: '', category: '', location: '', tags: '',
@@ -61,6 +62,7 @@ export default function CreatorPosts() {
   const { data: kategori } = useCollection(collection(db, PATHS.categories));
 
   const [tab, setTab] = useState('semua');
+  const [mode, setMode] = useState('karya');
   const [form, setForm] = useState(null); // null = tertutup
   const [menyimpan, setMenyimpan] = useState(false);
   const [pesan, setPesan] = useState(null);
@@ -179,10 +181,33 @@ export default function CreatorPosts() {
     }
   };
 
+  const mediaTabs = (
+    <div className="pill-tabs" style={{ marginBottom: 20 }}>
+      <button className={`pill-tab${mode === 'karya' ? ' active' : ''}`} onClick={() => setMode('karya')}>
+        Karya Explore
+      </button>
+      <button className={`pill-tab${mode === 'portfolio' ? ' active' : ''}`} onClick={() => setMode('portfolio')}>
+        Portfolio
+      </button>
+    </div>
+  );
+
+  if (mode === 'portfolio') {
+    return (
+      <div>
+        {dialog}
+        <h1 className="page-title">Unggah Karya</h1>
+        {mediaTabs}
+        <CreatorPortfolio embedded />
+      </div>
+    );
+  }
+
   return (
     <div>
       {dialog}
-      <h1 className="page-title">Unggahan Saya</h1>
+      <h1 className="page-title">Unggah Karya</h1>
+      {mediaTabs}
       <p className="text-meta" style={{ marginBottom: 20 }}>
         Karya yang Anda unggah ke Explore. Karya baru ditinjau admin dulu sebelum tayang di aplikasi.
       </p>

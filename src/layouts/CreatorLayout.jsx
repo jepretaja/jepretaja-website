@@ -28,7 +28,6 @@ const GROUPS = [
     items: [
       { to: '/creator/packages', label: 'Paket Jasa', icon: 'box' },
       { to: '/creator/posts', label: 'Unggahan Saya', icon: 'upload' },
-      { to: '/creator/portfolio', label: 'Portfolio', icon: 'image' },
       { to: '/creator/reviews', label: 'Ulasan', icon: 'star' },
     ],
   },
