@@ -26,6 +26,7 @@ export const resolveDispute = bind('resolveDispute');
 export const adminUpdateBookingStatus = bind('adminUpdateBookingStatus');
 export const confirmManualPayment = bind('confirmManualPayment');
 export const releaseEscrow = bind('releaseEscrow');
+export const processRefund = bind('processRefund');
 export const inviteAdmin = bind('inviteAdmin');
 export const adminDeleteUser = bind('adminDeleteUser');
 

@@ -24,9 +24,11 @@ export async function requireUser(req) {
     throw unauthorized('Token tidak valid atau sudah kedaluwarsa.');
   }
 
-  const snap = await adminDb().collection('users').doc(decoded.uid).get();
-  if (!snap.exists) throw forbidden('Akun tidak ditemukan.');
-  const user = snap.data();
+  const db = adminDb();
+  const snap = await db.collection('users').doc(decoded.uid).get();
+  const creatorSnap = snap.exists ? null : await db.collection('creators').doc(decoded.uid).get();
+  if (!snap.exists && !creatorSnap?.exists) throw forbidden('Akun tidak ditemukan.');
+  const user = snap.exists ? snap.data() : { ...creatorSnap.data(), role: 'creator' };
   if (user.status && user.status !== 'active') {
     throw forbidden('Akun Anda sedang tidak aktif.');
   }

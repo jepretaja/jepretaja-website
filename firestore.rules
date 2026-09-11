@@ -27,8 +27,11 @@ service cloud.firestore {
     // Console, belum punya claim) tetap bisa bekerja.
     function isAdmin() {
       return signedIn() && (
-        request.auth.token.admin == true ||
-        exists(/databases/$(database)/documents/admin_users/$(uid()))
+        (
+          (request.auth.token.admin == true || exists(/databases/$(database)/documents/admin_users/$(uid())))
+          && (!('status' in get(/databases/$(database)/documents/admin_users/$(uid())).data)
+              || get(/databases/$(database)/documents/admin_users/$(uid())).data.status == 'active')
+        )
       );
     }
 
@@ -65,7 +68,14 @@ service cloud.firestore {
     // Profil creator boleh dibaca siapa saja — ini etalase publik marketplace.
     match /creators/{creatorId} {
       allow read: if true;
-      allow create: if isOwner(creatorId);
+      // Profil creator tidak boleh lahir sebagai verified/approved dari client.
+      // Status awal tetap aktif agar etalase bisa dibuat, tetapi verifikasi
+      // identitas dan badge verified hanya boleh datang dari admin/server.
+      allow create: if isOwner(creatorId)
+        && request.resource.data.verified == false
+        && request.resource.data.status == 'active'
+        && (!('verificationStatus' in request.resource.data)
+            || request.resource.data.verificationStatus in ['pending', 'unverified']);
       // CATATAN PENTING: daftar ini dulu menyebut 'isVerified', padahal baik
       // aplikasi Android maupun panel web sama-sama memakai field bernama
       // 'verified' (lihat CreatorModel.kt dan CreatorList.jsx). Artinya field
@@ -96,7 +106,9 @@ service cloud.firestore {
       // di baris berikutnya. Tanpa itu admin bisa mengubah dan menghapus paket
       // milik creator, tapi TIDAK bisa membuatkannya — timpang, dan membuat
       // tombol "Tambah Paket" di panel admin selalu gagal.
-      allow create: if (signedIn() && request.resource.data.creatorId == uid()) || isAdmin();
+      allow create: if ((signedIn() && request.resource.data.creatorId == uid()) || isAdmin())
+        && request.resource.data.price is number
+        && request.resource.data.price > 0;
       allow update, delete: if (signedIn() && resource.data.creatorId == uid()) || isAdmin();
     }
 
@@ -261,9 +273,14 @@ service cloud.firestore {
       return signedIn() && (chat.customerId == uid() || chat.creatorId == uid());
     }
 
+    function chatNotBlocked(chat) {
+      return !exists(/databases/$(database)/documents/blocked_users/$(chat.customerId + '_' + chat.creatorId))
+        && !exists(/databases/$(database)/documents/blocked_users/$(chat.creatorId + '_' + chat.customerId));
+    }
+
     match /chats/{chatId} {
-      allow read: if isChatMember(resource.data) || isAdmin();
-      allow create: if isChatMember(request.resource.data);
+      allow read: if (isChatMember(resource.data) && chatNotBlocked(resource.data)) || isAdmin();
+      allow create: if isChatMember(request.resource.data) && chatNotBlocked(request.resource.data);
       // Pesan terakhir & waktu diperbarui setiap kali ada pesan baru.
       allow update: if isChatMember(resource.data)
                     && onlyChanges(['lastMessage', 'updatedAt']);
@@ -285,6 +302,7 @@ service cloud.firestore {
       allow create: if signedIn()
                     && request.resource.data.senderId == uid()
                     && uid() in request.resource.data.participants
+                    && chatNotBlocked(get(/databases/$(database)/documents/chats/$(request.resource.data.chatId)).data)
                     // Peserta yang ditulis harus benar-benar peserta chat itu.
                     && request.resource.data.participants.hasOnly(
                          [get(/databases/$(database)/documents/chats/$(request.resource.data.chatId)).data.customerId,

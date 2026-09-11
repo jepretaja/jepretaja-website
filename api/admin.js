@@ -3,7 +3,7 @@ import { processWithdrawal, markWithdrawalManual } from './_lib/actions/withdraw
 import { adminUpdateBookingStatus } from './_lib/actions/bookings.js';
 import { resolveDispute } from './_lib/actions/disputes.js';
 import { inviteAdmin, writeAdminAuditLog, adminDeleteUser } from './_lib/actions/adminUsers.js';
-import { confirmManualPayment, releaseEscrow } from './_lib/actions/adminPayments.js';
+import { confirmManualPayment, releaseEscrow, processRefund } from './_lib/actions/adminPayments.js';
 import { syncPlatformRevenue, withdrawPlatformBalance, cancelPlatformPayout } from './_lib/actions/platformPayout.js';
 
 /**
@@ -22,6 +22,7 @@ const HANDLERS = {
   adminUpdateBookingStatus,
   confirmManualPayment,
   releaseEscrow,
+  processRefund,
   resolveDispute,
   inviteAdmin,
   adminDeleteUser,

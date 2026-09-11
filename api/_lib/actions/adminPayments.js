@@ -266,3 +266,73 @@ export async function releaseEscrow(req) {
     return { bookingId, creatorId: escrow.creatorId, amount: nominal, status: 'released' };
   });
 }
+
+/** Menyelesaikan permintaan refund secara idempotent dari panel admin. */
+export async function processRefund(req) {
+  const actor = await requireAdmin(req, 'manage_refund');
+  const body = readBody(req);
+  const refundId = requireString(body.refundId, 'refundId');
+  const action = requireOneOf(body.action, 'action', ['approve', 'reject']);
+  const reason = typeof body.reason === 'string' ? body.reason.trim() : null;
+  const db = adminDb();
+  const refundRef = db.collection('refunds').doc(refundId);
+  const refundSnap = await refundRef.get();
+  if (!refundSnap.exists) throw notFound('Permintaan refund tidak ditemukan.');
+  const refund = refundSnap.data();
+  if (refund.status !== 'pending') throw conflict(`Refund sudah berstatus "${refund.status}".`);
+
+  if (action === 'reject') {
+    await db.runTransaction(async (tx) => {
+      const current = await tx.get(refundRef);
+      if (!current.exists || current.data().status !== 'pending') throw conflict('Refund sudah diproses admin lain.');
+      tx.update(refundRef, {
+        status: 'rejected', rejectedReason: reason, processedBy: actor.uid,
+        processedAt: FieldValue.serverTimestamp(),
+      });
+      tx.update(db.collection('bookings').doc(refund.bookingId), {
+        status: 'confirmed', updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
+    return { refundId, status: 'rejected' };
+  }
+
+  const paymentSnap = await db.collection('payments').where('bookingId', '==', refund.bookingId).limit(1).get();
+  const payment = paymentSnap.docs[0]?.data();
+  let providerStatus = 'approved_manual';
+  if (payment?.provider === 'midtrans' && payment.orderId) {
+    const endpoint = process.env.MIDTRANS_ENV === 'production'
+      ? `https://app.midtrans.com/v2/${encodeURIComponent(payment.orderId)}/refund`
+      : `https://app.sandbox.midtrans.com/v2/${encodeURIComponent(payment.orderId)}/refund`;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${process.env.MIDTRANS_SERVER_KEY || ''}:`).toString('base64')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refund_key: refundId, amount: Number(refund.amount) || 0, reason: reason || refund.reason || 'refund admin' }),
+    });
+    if (!response.ok) throw new HttpError(502, 'refund-provider-error', 'Gateway pembayaran menolak refund. Coba lagi atau proses manual.');
+    providerStatus = 'refunded';
+  }
+
+  await db.runTransaction(async (tx) => {
+    const current = await tx.get(refundRef);
+    if (!current.exists || current.data().status !== 'pending') throw conflict('Refund sudah diproses admin lain.');
+    tx.update(refundRef, {
+      status: providerStatus, processedBy: actor.uid, processedAt: FieldValue.serverTimestamp(),
+      providerReference: payment?.orderId || null, adminNote: reason,
+    });
+    tx.update(db.collection('bookings').doc(refund.bookingId), {
+      status: 'cancelled', updatedAt: FieldValue.serverTimestamp(),
+    });
+    if (paymentSnap.docs[0]) {
+      tx.update(paymentSnap.docs[0].ref, { status: 'refunded', refundedAt: FieldValue.serverTimestamp() });
+    }
+    writeNotification(db, tx, {
+      userId: refund.customerId, type: 'refund', title: 'Refund diproses',
+      body: providerStatus === 'refunded' ? 'Refund berhasil dikirim ke gateway pembayaran.' : 'Refund disetujui dan perlu diproses manual oleh admin.',
+      referenceId: refund.bookingId,
+    });
+  });
+  return { refundId, status: providerStatus };
+}
