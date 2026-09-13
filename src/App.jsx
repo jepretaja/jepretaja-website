@@ -44,6 +44,7 @@ const PortfolioModeration = lazy(() => import('./pages/portfolios/PortfolioModer
 const ChatMonitor = lazy(() => import('./pages/chats/ChatMonitor'));
 const MyAccount = lazy(() => import('./pages/account/MyAccount'));
 const PlatformRevenue = lazy(() => import('./pages/platform/PlatformRevenue'));
+const LiveTracking = lazy(() => import('./pages/tracking/LiveTracking'));
 
 // Route penampung untuk alamat yang tidak dikenal. Tanpa ini URL salah ketik
 // berakhir di layar putih tanpa pesan apa pun.
@@ -126,6 +127,7 @@ export default function App() {
             <Route path="/explore" element={<Lazy><RequirePermission permission="moderate_content"><ExploreModeration /></RequirePermission></Lazy>} />
             <Route path="/explore/:id" element={<Lazy><RequirePermission permission="moderate_content"><PostDetail /></RequirePermission></Lazy>} />
             <Route path="/bookings" element={<Lazy><RequirePermission permission="manage_booking"><BookingList /></RequirePermission></Lazy>} />
+            <Route path="/tracking" element={<Lazy><RequirePermission permission="manage_booking"><LiveTracking /></RequirePermission></Lazy>} />
             <Route path="/bookings/:id" element={<Lazy><RequirePermission permission="manage_booking"><BookingDetail /></RequirePermission></Lazy>} />
             <Route path="/payments" element={<Lazy><RequirePermission permission="manage_payment"><TransactionList /></RequirePermission></Lazy>} />
             <Route path="/payments/manual" element={<Lazy><RequirePermission permission="manage_payment"><ManualTransfers /></RequirePermission></Lazy>} />

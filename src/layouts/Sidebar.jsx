@@ -38,6 +38,7 @@ const GROUPS = [
     label: 'Transaksi',
     items: [
       { to: '/bookings', label: 'Bookings', icon: 'booking', permission: 'manage_booking' },
+      { to: '/tracking', label: 'Perjalanan Live', icon: 'map', permission: 'manage_booking' },
       { to: '/payments', label: 'Payments', icon: 'money', permission: 'manage_payment' },
       { to: '/payments/manual', label: 'Verifikasi Transfer', icon: 'check', permission: 'manage_payment' },
       { to: '/escrow', label: 'Escrow / Held Funds', icon: 'lock', permission: 'manage_escrow' },

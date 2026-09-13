@@ -30,6 +30,7 @@ export const PATHS = {
   chats: 'chats',
   messages: 'messages',
   blockedUsers: 'blocked_users',
+  liveLocations: 'live_locations',
 
   payments: 'payments',
   escrowTransactions: 'escrow_transactions',

@@ -112,6 +112,11 @@ export async function createBooking(req) {
   const tanggalIso = requireString(body.date, 'date');
   const time = requireString(body.time, 'time');
   const location = requireString(body.location, 'location');
+  const latitude = body.latitude == null ? null : Number(body.latitude);
+  const longitude = body.longitude == null ? null : Number(body.longitude);
+  if ((latitude != null && !Number.isFinite(latitude)) || (longitude != null && !Number.isFinite(longitude))) {
+    throw badRequest('Koordinat lokasi tidak valid.');
+  }
   const note = typeof body.note === 'string' ? body.note.trim() : null;
 
   const tanggal = new Date(tanggalIso);
@@ -183,6 +188,8 @@ export async function createBooking(req) {
       dateKey: kunciTanggal,
       time,
       location,
+      latitude,
+      longitude,
       note,
       addOns: hasil.addOnDetail,
       total: hasil.total,
