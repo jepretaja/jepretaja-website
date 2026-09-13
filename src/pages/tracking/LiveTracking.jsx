@@ -26,6 +26,7 @@ export default function LiveTracking() {
   const { data: creators, loading: creatorsLoading } = useCollection(collection(db, PATHS.creators));
   const [selectedId, setSelectedId] = useState(null);
   const [playbackIndex, setPlaybackIndex] = useState(-1);
+  const [query, setQuery] = useState('');
 
   const rows = useMemo(() => bookings.map((booking) => ({
     booking: {
@@ -38,6 +39,11 @@ export default function LiveTracking() {
     history: tracks.filter((point) => point.bookingId === booking.id).sort((a, b) => timeOf(a.recordedAt) - timeOf(b.recordedAt)),
   })), [bookings, positions, tracks, users, creators]);
   const selected = rows.find((row) => row.booking.id === selectedId) || rows[0];
+  const visibleRows = useMemo(() => rows.filter(({ booking }) => {
+    const needle = query.trim().toLowerCase();
+    return !needle || [booking.id, booking.packageName, booking.customerName, booking.creatorName]
+      .filter(Boolean).some((value) => value.toLowerCase().includes(needle));
+  }), [rows, query]);
   const loading = bookingsLoading || positionsLoading || tracksLoading || alertsLoading || usersLoading || creatorsLoading;
   const error = bookingsError || positionsError;
 
@@ -50,24 +56,31 @@ export default function LiveTracking() {
 
   return (
     <div>
-      <div className="page-title-row">
-        <div><h1 className="page-title">Perjalanan Live</h1><p className="text-meta">Marker dan jejak bergerak mengikuti update lokasi Firestore.</p></div>
-        <span className="status-badge status-confirmed">LIVE</span>
+      <div className="tracking-hero">
+        <div>
+          <div className="tracking-eyebrow"><span className="tracking-pulse" /> OPERATIONS · LIVE MONITORING</div>
+          <h1 className="page-title">Perjalanan Live</h1>
+          <p className="text-meta">Pantau creator dan customer dalam satu peta, dengan jejak perjalanan dan alert support.</p>
+        </div>
+        <span className="tracking-live-badge">LIVE <span>●</span></span>
       </div>
-      <div className="grid grid-3 tracking-stats">
+      <div className="grid grid-4 tracking-stats">
         <div className="card"><div className="text-meta">Booking aktif</div><strong>{rows.length}</strong></div>
         <div className="card"><div className="text-meta">Orang terlacak</div><strong>{activePeople}</strong></div>
         <div className="card"><div className="text-meta">Sudah tiba geofence</div><strong>{arrived}</strong></div>
-        <div className="card"><div className="text-meta">SOS terbuka</div><strong>{alerts.filter((alert) => alert.status === 'open').length}</strong></div>
+        <div className="card stat-alert"><div className="text-meta">SOS terbuka</div><strong>{alerts.filter((alert) => alert.status === 'open').length}</strong></div>
       </div>
       {error && <div className="alert alert-danger">Gagal memuat perjalanan realtime.</div>}
       {loading && <div className="loading">Memuat perjalanan...</div>}
       {!loading && rows.length === 0 && <div className="empty-state">Belum ada perjalanan aktif.</div>}
       {selected && <>
         <div className="card tracking-map-card"><MapView row={selected} playbackIndex={playbackIndex} /></div>
-        <div className="table-wrap">
-          <div className="table-toolbar"><strong>Perjalanan aktif</strong><span className="text-meta">Pilih booking untuk playback rute</span></div>
-          {rows.map((row) => <TrackingRow key={row.booking.id} row={row} selected={row.booking.id === selected.booking.id} onSelect={() => { setSelectedId(row.booking.id); setPlaybackIndex(-1); }} />)}
+        <div className="table-wrap tracking-list">
+          <div className="table-toolbar">
+            <div><strong>Perjalanan aktif</strong><span className="text-meta"> {visibleRows.length} dari {rows.length} booking</span></div>
+            <input className="input tracking-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari booking / nama..." />
+          </div>
+          {visibleRows.map((row) => <TrackingRow key={row.booking.id} row={row} selected={row.booking.id === selected.booking.id} onSelect={() => { setSelectedId(row.booking.id); setPlaybackIndex(-1); }} />)}
         </div>
         {selected.history.length > 1 && <div className="card tracking-playback">
           <div className="section-title">Playback rute</div>

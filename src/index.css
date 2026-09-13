@@ -253,7 +253,10 @@ input, select, textarea { font-family: inherit; }
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 18px;
+  box-shadow: 0 8px 24px rgba(20, 30, 48, .045);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
+.card:hover { border-color: var(--border-strong); box-shadow: 0 12px 30px rgba(20, 30, 48, .075); }
 .stat-card .label { font-size: 13px; color: var(--text-secondary); }
 .stat-card .value { font-family: var(--font-mono); font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
 .stat-card .delta { font-size: 12.5px; margin-top: 6px; color: var(--text-secondary); }
@@ -294,6 +297,7 @@ tbody tr:hover { background: var(--surface-subtle); }
   background: var(--surface); font-size: 14.5px; color: var(--text);
 }
 .input:focus, select.input:focus, textarea.input:focus { outline: none; border-color: var(--primary); }
+.input:focus, select.input:focus, textarea.input:focus { box-shadow: 0 0 0 3px var(--primary-tint); }
 .search-input { position: relative; width: 280px; }
 .search-input input { padding-left: 32px; }
 .search-input .icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 14px; }
@@ -305,7 +309,8 @@ tbody tr:hover { background: var(--surface-subtle); }
   font-size: 14.5px; font-weight: 600; text-decoration: none;
 }
 .btn-primary { background: var(--primary); color: white; }
-.btn-primary:hover { background: var(--primary-dark); }
+.btn-primary { box-shadow: 0 5px 12px rgba(47, 111, 237, .18); transition: transform .16s ease, box-shadow .16s ease, background .16s ease; }
+.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(47, 111, 237, .24); }
 .btn-outline { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
 .btn-outline:hover { border-color: var(--primary); color: var(--primary-dark); }
 .btn-danger { background: var(--danger-tint); color: var(--danger); }
@@ -901,9 +906,26 @@ a.cip:hover { border-color: var(--primary); }
 }
 
 /* Live journey console */
+.tracking-hero {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+  margin: -4px 0 22px; padding: 26px 28px; border-radius: 18px;
+  color: #F8FAFC; background: linear-gradient(120deg, #14213D 0%, #1F3A69 62%, #176B87 100%);
+  box-shadow: 0 18px 42px rgba(20, 33, 61, .18); overflow: hidden; position: relative;
+}
+.tracking-hero::after { content: ''; position: absolute; width: 260px; height: 260px; right: 10%; top: -160px; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; box-shadow: 0 0 0 28px rgba(255,255,255,.04), 0 0 0 56px rgba(255,255,255,.03); }
+.tracking-hero .page-title { color: #fff; margin: 8px 0 4px; position: relative; z-index: 1; }
+.tracking-hero .text-meta { color: rgba(248,250,252,.72); position: relative; z-index: 1; }
+.tracking-eyebrow { color: #8BE3D0; font-size: 11px; letter-spacing: .14em; font-weight: 800; position: relative; z-index: 1; }
+.tracking-pulse { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #55E0B4; box-shadow: 0 0 0 5px rgba(85,224,180,.16); }
+.tracking-live-badge { position: relative; z-index: 1; padding: 9px 13px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; color: #B9F7E4; background: rgba(255,255,255,.1); font-size: 12px; font-weight: 800; letter-spacing: .08em; }
+.tracking-live-badge span { color: #55E0B4; }
 .tracking-map-card { padding: 0; overflow: hidden; }
 .tracking-map { width: 100%; height: 460px; z-index: 1; }
 .tracking-stats strong { display: block; margin-top: 8px; font-size: 28px; color: var(--primary); }
+.tracking-stats .card { min-height: 94px; }
+.tracking-stats .stat-alert strong { color: var(--danger); }
+.tracking-list { overflow: hidden; }
+.tracking-search { width: min(280px, 45vw); }
 .tracking-row {
   display: flex; width: 100%; justify-content: space-between; gap: 20px; padding: 14px 16px;
   border: 0; border-top: 1px solid var(--border); background: var(--surface); color: var(--text);
@@ -914,6 +936,14 @@ a.cip:hover { border-color: var(--primary); }
 .tracking-row small { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; }
 .tracking-playback { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
 .tracking-playback input { flex: 1; accent-color: var(--primary); }
+.tracking-alerts { margin-top: 16px; border-left: 4px solid var(--danger); }
+
+@media (max-width: 720px) {
+  .tracking-hero { align-items: flex-start; flex-direction: column; padding: 22px; }
+  .tracking-stats { grid-template-columns: repeat(2, 1fr); }
+  .tracking-search { width: 100%; }
+  .tracking-list .table-toolbar { align-items: stretch; flex-direction: column; }
+}
 /* Langkah yang sudah beres diredupkan DAN ditandai centang: yang belum
    dikerjakan harus lebih menarik mata daripada yang sudah. */
 .langkah.beres { opacity: 0.62; }
