@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "node --test",
+    "test": "node --test api/_lib/actions/*.test.mjs",
     "preview": "vite preview",
     "seed": "node scripts/seed.mjs",
     "seed:hapus": "node scripts/seed.mjs --hapus",
