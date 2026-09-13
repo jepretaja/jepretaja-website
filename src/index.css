@@ -937,6 +937,15 @@ a.cip:hover { border-color: var(--primary); }
 .tracking-playback { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
 .tracking-playback input { flex: 1; accent-color: var(--primary); }
 .tracking-alerts { margin-top: 16px; border-left: 4px solid var(--danger); }
+.booking-detail-hero {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 12px 0 20px;
+  padding: 22px 24px; border-radius: 16px; color: #F8FAFC;
+  background: linear-gradient(120deg, #18243B, #31528A); box-shadow: 0 14px 32px rgba(24,36,59,.16);
+}
+.booking-detail-hero h1 { margin: 8px 0 4px; color: #fff; font-family: var(--font-display); font-size: 24px; }
+.booking-detail-hero p { margin: 0; color: rgba(248,250,252,.72); font-size: 14px; }
+.booking-detail-hero .status-badge { background: rgba(255,255,255,.14); color: #fff; border-color: rgba(255,255,255,.22); }
+@media (max-width: 640px) { .booking-detail-hero { align-items: flex-start; flex-direction: column; } }
 
 @media (max-width: 720px) {
   .tracking-hero { align-items: flex-start; flex-direction: column; padding: 22px; }

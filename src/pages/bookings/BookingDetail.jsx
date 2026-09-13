@@ -50,9 +50,17 @@ export default function BookingDetail() {
     <div>
       {dialog}
       <div className="breadcrumb"><Link to="/bookings">Bookings</Link> / #{id.slice(0, 8).toUpperCase()}</div>
+      <div className="booking-detail-hero">
+        <div>
+          <div className="tracking-eyebrow">BOOKING CONTROL · #{id.slice(0, 8).toUpperCase()}</div>
+          <h1>{booking.packageName || 'Booking'}</h1>
+          <p>{booking.location || 'Lokasi belum diisi'} · {booking.time || 'Jam belum diisi'}</p>
+        </div>
+        <StatusBadge status={booking.status} />
+      </div>
       <div className="grid grid-2">
         <div className="card">
-          <div className="section-title">Detail Booking</div>
+          <div className="section-title">Ringkasan perjalanan</div>
           <div className="detail-row"><span className="k">Paket</span><span className="v">{booking.packageName}</span></div>
           <div className="detail-row"><span className="k">Lokasi</span><span className="v">{booking.location}</span></div>
           <div className="detail-row"><span className="k">Jam</span><span className="v">{booking.time}</span></div>
@@ -60,6 +68,7 @@ export default function BookingDetail() {
           <div className="detail-row"><span className="k">Total</span><span className="v num">{formatCurrency(booking.total)}</span></div>
           <div className="detail-row"><span className="k">Status</span><span className="v"><StatusBadge status={booking.status} /></span></div>
           <div className="detail-row"><span className="k">Dibuat</span><span className="v">{formatDateTime(booking.createdAt)}</span></div>
+          {booking.latitude && booking.longitude && <div className="detail-row"><span className="k">Koordinat</span><span className="v num">{Number(booking.latitude).toFixed(5)}, {Number(booking.longitude).toFixed(5)}</span></div>}
         </div>
         <div className="card">
           <div className="section-title">Override Status (Admin)</div>
