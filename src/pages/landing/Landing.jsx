@@ -133,24 +133,40 @@ export default function Landing() {
       </header>
 
       <section className="landing-hero">
-        <div className="landing-container">
-          <span className={`landing-pill landing-pill-${semuaNormal ? 'success' : 'warning'}`}>
-            <span className={`landing-dot landing-dot-${semuaNormal ? 'success' : 'warning'}`} />
-            {semuaNormal ? 'Semua sistem beroperasi normal' : 'Periksa status sistem di bawah'}
-          </span>
-          <h1 className="landing-title">Selamat Datang di Portal Manajemen Internal</h1>
-          <p className="landing-subtitle">
-            Pusat pengelolaan pengguna, creator, pemesanan, dan transaksi JepretAja.
-            Tinjau pengumuman serta status sistem terkini sebelum Anda masuk ke area kontrol utama.
-          </p>
-          <div className="landing-cta">
-            <Link className="btn btn-primary btn-lg" to="/login">Masuk ke Dashboard</Link>
-            <a className="btn btn-download btn-lg" href={APK_DOWNLOAD_URL} download="jepretaja.apk">
-              Unduh APK Android
-            </a>
-            <a className="btn btn-ghost btn-lg" href="#panduan">Lihat Panduan</a>
+        <div className="landing-container landing-hero-layout">
+          <div className="landing-hero-copy">
+            <span className={`landing-pill landing-pill-${semuaNormal ? 'success' : 'warning'}`}>
+              <span className={`landing-dot landing-dot-${semuaNormal ? 'success' : 'warning'}`} />
+              {semuaNormal ? 'Semua sistem beroperasi normal' : 'Periksa status sistem di bawah'}
+            </span>
+            <h1 className="landing-title">Operasikan bisnis kreatif dengan <em>lebih percaya diri.</em></h1>
+            <p className="landing-subtitle">
+              Satu ruang kendali untuk mengelola creator, pemesanan, transaksi, dan pengalaman
+              pelanggan JepretAja. Dibuat untuk keputusan yang cepat dan terukur.
+            </p>
+            <div className="landing-cta">
+              <Link className="btn btn-primary btn-lg" to="/login">Masuk ke Dashboard <span aria-hidden="true">-&gt;</span></Link>
+              <a className="btn btn-ghost btn-lg" href="#panduan">Jelajahi platform</a>
+            </div>
+            <div className="landing-hero-note"><span className="landing-note-check">&#10003;</span> Aman, terukur, dan siap bertumbuh bersama tim Anda</div>
+          </div>
+          <div className="landing-product-preview" aria-label="Pratinjau dashboard JepretAja">
+            <div className="preview-glow" />
+            <div className="preview-window">
+              <div className="preview-toolbar"><span className="preview-brand"><span className="preview-brand-mark">JA</span> JepretAja</span><span className="preview-avatar">AD</span></div>
+              <div className="preview-body">
+                <div className="preview-greeting"><span>Selamat pagi, Admin</span><strong>Ringkasan performa</strong></div>
+                <div className="preview-stats">
+                  <div><span>Gross booking value</span><strong>Rp 248,6 jt</strong><small className="preview-up">+18,4%</small></div>
+                  <div><span>Booking aktif</span><strong>1.284</strong><small className="preview-up">+12,8%</small></div>
+                </div>
+                <div className="preview-chart"><div className="preview-chart-head"><span>Performa transaksi</span><b>7 hari terakhir</b></div><div className="preview-bars"><i style={{ height: '38%' }} /><i style={{ height: '52%' }} /><i style={{ height: '46%' }} /><i style={{ height: '68%' }} /><i style={{ height: '60%' }} /><i style={{ height: '82%' }} /><i style={{ height: '94%' }} /></div></div>
+                <div className="preview-activity"><span className="preview-pulse" /> Sistem siap digunakan <b>Online</b></div>
+              </div>
+            </div>
           </div>
         </div>
+        <div className="landing-trust landing-container"><span>Dipercaya untuk mengelola operasional</span><strong>CREATOR NETWORK</strong><strong>STUDIO PARTNERS</strong><strong>JEPRETAJA PRO</strong><strong>BUILT FOR SCALE</strong></div>
       </section>
 
       <main className="landing-container landing-main">
