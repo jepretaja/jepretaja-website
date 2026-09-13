@@ -15,6 +15,7 @@ const UserList = lazy(() => import('./pages/users/UserList'));
 const UserDetail = lazy(() => import('./pages/users/UserDetail'));
 const CreatorList = lazy(() => import('./pages/creators/CreatorList'));
 const CreatorDetail = lazy(() => import('./pages/creators/CreatorDetail'));
+const CreatorVerification = lazy(() => import('./pages/creators/CreatorVerification'));
 const ExploreModeration = lazy(() => import('./pages/explore/ExploreModeration'));
 const PostDetail = lazy(() => import('./pages/explore/PostDetail'));
 const BookingList = lazy(() => import('./pages/bookings/BookingList'));
@@ -124,6 +125,7 @@ export default function App() {
             <Route path="/users/:id" element={<Lazy><RequirePermission permission="view_users"><UserDetail /></RequirePermission></Lazy>} />
             <Route path="/creators" element={<Lazy><RequirePermission permission="view_users"><CreatorList /></RequirePermission></Lazy>} />
             <Route path="/creators/:id" element={<Lazy><RequirePermission permission="view_users"><CreatorDetail /></RequirePermission></Lazy>} />
+            <Route path="/creator-verification" element={<Lazy><RequirePermission permission="verify_creator"><CreatorVerification /></RequirePermission></Lazy>} />
             <Route path="/explore" element={<Lazy><RequirePermission permission="moderate_content"><ExploreModeration /></RequirePermission></Lazy>} />
             <Route path="/explore/:id" element={<Lazy><RequirePermission permission="moderate_content"><PostDetail /></RequirePermission></Lazy>} />
             <Route path="/bookings" element={<Lazy><RequirePermission permission="manage_booking"><BookingList /></RequirePermission></Lazy>} />

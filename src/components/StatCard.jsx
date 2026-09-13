@@ -9,9 +9,9 @@ import Icon from './Icon';
  * arti: labelnya selalu ada di sebelahnya, jadi kartu tetap terbaca penuh
  * tanpa membedakan warna.
  */
-export default function StatCard({ label, value, delta, deltaDirection = 'up', icon, tone = 'netral' }) {
+export default function StatCard({ label, value, delta, deltaDirection = 'up', icon, tone = 'netral', onClick }) {
   return (
-    <div className="card stat-card">
+    <div className={`card stat-card${onClick ? ' is-clickable' : ''}`} onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined} onKeyDown={onClick ? (event) => { if (event.key === 'Enter' || event.key === ' ') onClick(); } : undefined}>
       <div className="stat-head">
         <div className="label">{label}</div>
         {icon && (

@@ -1,5 +1,6 @@
 import { collection, limit, orderBy, query, where } from 'firebase/firestore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase/config';
 import { PATHS } from '../../firebase/paths';
 import { useCollection } from '../../hooks/useCollection';
@@ -16,6 +17,7 @@ import { STATUS_AKTIF, STATUS_SELESAI, hitungGmv } from '../../utils/bookingStat
  * terjadwal (Cloud Functions + BigQuery/Firestore rollup).
  */
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { data: users, error: usersError } = useCollection(collection(db, PATHS.users));
   const { data: creators, error: creatorsError } = useCollection(collection(db, PATHS.creators));
   const { data: bookings, loading: bookingsLoading, error: bookingsError } = useCollection(collection(db, PATHS.bookings), [orderBy('createdAt', 'desc'), limit(200)]);
@@ -84,21 +86,21 @@ export default function Dashboard() {
         </div>
       )}
       <div className="grid grid-4 mb-lg">
-        <StatCard label="Total Users" value={compactNumber(users.length)} icon="users" tone="info" />
-        <StatCard label="Total Creators" value={compactNumber(creators.length)} delta={`${verifiedCreators} verified`} icon="sparkle" tone="utama" />
-        <StatCard label="Active Bookings" value={compactNumber(activeBookings)} icon="booking" tone="peringatan" />
-        <StatCard label="Completed Bookings" value={compactNumber(completedBookings)} icon="check" tone="sukses" />
+        <StatCard label="Total Users" value={compactNumber(users.length)} icon="users" tone="info" onClick={() => navigate('/users')} />
+        <StatCard label="Total Creators" value={compactNumber(creators.length)} delta={`${verifiedCreators} verified`} icon="sparkle" tone="utama" onClick={() => navigate('/creators')} />
+        <StatCard label="Active Bookings" value={compactNumber(activeBookings)} icon="booking" tone="peringatan" onClick={() => navigate('/bookings')} />
+        <StatCard label="Completed Bookings" value={compactNumber(completedBookings)} icon="check" tone="sukses" onClick={() => navigate('/bookings')} />
       </div>
       <div className="grid grid-4 mb-lg">
-        <StatCard label="Gross Transaction Value" value={formatCurrency(gmv)} icon="money" tone="sukses" />
+        <StatCard label="Gross Transaction Value" value={formatCurrency(gmv)} icon="money" tone="sukses" onClick={() => navigate('/payments')} />
         <StatCard
           label="Open Disputes" value={disputes.length}
           deltaDirection={disputes.length ? 'down' : 'up'}
           delta={disputes.length ? 'Perlu ditinjau' : 'Aman'}
-          icon="alert" tone={disputes.length ? 'bahaya' : 'netral'}
+          icon="alert" tone={disputes.length ? 'bahaya' : 'netral'} onClick={() => navigate('/disputes')}
         />
-        <StatCard label="Pending Withdrawals" value={withdrawals.length} icon="download" tone={withdrawals.length ? 'peringatan' : 'netral'} />
-        <StatCard label="Reported Content" value={reports.length} icon="flag" tone={reports.length ? 'peringatan' : 'netral'} />
+        <StatCard label="Pending Withdrawals" value={withdrawals.length} icon="download" tone={withdrawals.length ? 'peringatan' : 'netral'} onClick={() => navigate('/withdrawals')} />
+        <StatCard label="Reported Content" value={reports.length} icon="flag" tone={reports.length ? 'peringatan' : 'netral'} onClick={() => navigate('/reports')} />
       </div>
 
       <div className="grid grid-2 mb-lg">
@@ -138,6 +140,7 @@ export default function Dashboard() {
           loading={bookingsLoading}
           error={bookingsError}
           onRetry={() => window.location.reload()}
+          onRowClick={(row) => navigate(`/bookings/${row.id}`)}
           emptyTitle="Belum ada booking"
           columns={[
             { key: 'packageName', label: 'Paket' },
