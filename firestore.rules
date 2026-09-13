@@ -393,6 +393,34 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /location_tracks/{trackId} {
+      allow read: if isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.userId == uid()
+        && request.resource.data.bookingId is string
+        && request.resource.data.role in ['customer', 'creator']
+        && exists(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId))
+        && (
+          (request.resource.data.role == 'customer' && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.customerId == uid())
+          || (request.resource.data.role == 'creator' && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.creatorId == uid())
+        );
+      allow update, delete: if false;
+    }
+
+    match /support_alerts/{alertId} {
+      allow read: if isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.userId == uid()
+        && request.resource.data.type == 'sos'
+        && request.resource.data.bookingId is string
+        && exists(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId))
+        && (
+          get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.customerId == uid()
+          || get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.creatorId == uid()
+        );
+      allow update, delete: if false;
+    }
+
     match /escrow_transactions/{escrowId} {
       allow read: if isAdmin();
       allow write: if false;

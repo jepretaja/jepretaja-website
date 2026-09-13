@@ -31,6 +31,8 @@ export const PATHS = {
   messages: 'messages',
   blockedUsers: 'blocked_users',
   liveLocations: 'live_locations',
+  locationTracks: 'location_tracks',
+  supportAlerts: 'support_alerts',
 
   payments: 'payments',
   escrowTransactions: 'escrow_transactions',
