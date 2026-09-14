@@ -236,8 +236,23 @@ service cloud.firestore {
 
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create: if signedIn() && request.resource.data.customerId == uid();
-      allow update: if (signedIn() && resource.data.customerId == uid() && noProtectedFields(['status', 'moderationStatus'])) || isAdmin();
+      allow create: if signedIn()
+        && reviewId == request.resource.data.bookingId
+        && request.resource.data.customerId == uid()
+        && request.resource.data.creatorId == get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.creatorId
+        && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.customerId == uid()
+        && get(/databases/$(database)/documents/bookings/$(request.resource.data.bookingId)).data.status in ['completed', 'customer_confirmed', 'funds_released', 'reviewed']
+        && request.resource.data.rating is number
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.status == 'published';
+      allow update: if (signedIn()
+        && resource.data.customerId == uid()
+        && noProtectedFields(['bookingId', 'customerId', 'creatorId', 'rating', 'status', 'moderationStatus', 'createdAt']))
+        || (signedIn()
+          && resource.data.creatorId == uid()
+          && onlyChanges(['creatorReply']))
+        || isAdmin();
       allow delete: if isAdmin();
     }
 

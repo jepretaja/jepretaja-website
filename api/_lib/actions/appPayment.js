@@ -1,26 +1,53 @@
 import { adminDb, FieldValue } from '../firebaseAdmin.js';
 import { requireUser } from '../authUser.js';
-import { readBody, requireString, notFound, conflict, forbidden, HttpError } from '../http.js';
+import { readBody, requireString, notFound, conflict, forbidden } from '../http.js';
 
-const MIDTRANS_ENDPOINT = process.env.MIDTRANS_ENV === 'production'
-  ? 'https://app.midtrans.com/snap/v1/transactions'
-  : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+const DEFAULT_BANK = {
+  bankName: 'BCA',
+  bankAccountNumber: '1234567890',
+  bankAccountName: 'PT JepretAja Indonesia',
+};
 
-function midtransAuth() {
-  const key = process.env.MIDTRANS_SERVER_KEY;
-  if (!key) throw new HttpError(500, 'midtrans-not-configured', 'Pembayaran sedang dikonfigurasi. Coba lagi nanti.');
-  return `Basic ${Buffer.from(`${key}:`).toString('base64')}`;
+export function computeUniqueCode(bookingId) {
+  if (!bookingId || !bookingId.trim()) return 111;
+  const seed = [...bookingId].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  return ((seed % 900) + 100) % 1000;
+}
+
+export function buildTransferInstruction({
+  bookingId,
+  amount,
+  bankName,
+  bankAccountNumber,
+  bankAccountName,
+  expiresAtMs,
+}) {
+  const uniqueCode = computeUniqueCode(bookingId);
+  const transferAmount = Number(amount) + uniqueCode;
+  const expiresAt = Number(expiresAtMs || Date.now() + 24 * 60 * 60 * 1000);
+
+  return {
+    status: 'awaiting_transfer',
+    provider: 'transfer_manual',
+    method: 'bank_transfer',
+    uniqueCode,
+    transferAmount,
+    amount: Number(amount),
+    bankName: bankName || DEFAULT_BANK.bankName,
+    bankAccountNumber: bankAccountNumber || DEFAULT_BANK.bankAccountNumber,
+    bankAccountName: bankAccountName || DEFAULT_BANK.bankAccountName,
+    expiresAt,
+    instruction: `Transfer sebesar Rp ${transferAmount.toLocaleString('id-ID')} ke rekening ${bankName || DEFAULT_BANK.bankName} ${bankAccountNumber || DEFAULT_BANK.bankAccountNumber} a.n. ${bankAccountName || DEFAULT_BANK.bankAccountName}. Masukkan kode unik ${uniqueCode} agar pembayaran bisa dicocokkan.`,
+  };
 }
 
 /**
- * Membuat order pembayaran untuk sebuah booking.
+ * Membuat instruksi transfer manual untuk booking.
  *
- * Membuat transaksi Midtrans Snap. Server Key hanya berada di Vercel; aplikasi
- * menerima snapToken/redirectUrl dan tidak pernah menerima kredensial rahasia.
- *
- * Nilai yang ditagih diambil dari dokumen booking di Firestore, tidak
- * pernah dari body request — kalau tidak, nominal bisa diubah dari sisi
- * aplikasi menjadi berapa pun.
+ * Server tidak lagi membuat transaksi Midtrans di backend ini. Flow yang
+ * dipakai aplikasi dan admin web adalah transfer manual: pelanggan membayar
+ * ke rekening yang ditetapkan di settings/general, lalu admin memverifikasi
+ * di panel web dengan aksi confirmManualPayment.
  */
 export async function createPaymentOrder(req) {
   const actor = await requireUser(req);
@@ -29,49 +56,99 @@ export async function createPaymentOrder(req) {
 
   const db = adminDb();
   const bookingRef = db.collection('bookings').doc(bookingId);
-  const snap = await bookingRef.get();
-  if (!snap.exists) throw notFound('Booking tidak ditemukan.');
-  const booking = snap.data();
-  if (booking.customerId !== actor.uid) throw forbidden('Booking ini bukan milik Anda.');
-  if (booking.status !== 'pending_payment') throw conflict(`Booking berstatus "${booking.status}", tidak menunggu pembayaran.`);
+  const bookingSnap = await bookingRef.get();
+  if (!bookingSnap.exists) throw notFound('Booking tidak ditemukan.');
 
-  if (booking.paymentId) {
-    const existing = await db.collection('payments').doc(booking.paymentId).get();
-    const old = existing.data();
-    if (old?.provider === 'midtrans' && old.snapToken && ['pending', 'settlement', 'capture'].includes(old.status)) {
-      return { paymentId: existing.id, orderId: old.orderId, amount: old.amount, snapToken: old.snapToken, redirectUrl: old.redirectUrl, clientKey: process.env.MIDTRANS_CLIENT_KEY || '' };
-    }
+  const booking = bookingSnap.data();
+  if (booking.customerId !== actor.uid) throw forbidden('Booking ini bukan milik Anda.');
+  if (booking.status !== 'pending_payment') {
+    throw conflict(`Booking berstatus "${booking.status}", tidak menunggu pembayaran.`);
   }
 
-  const paymentRef = db.collection('payments').doc();
-  const orderId = `JEP-${bookingId}-${paymentRef.id.slice(0, 8)}`;
+  if (booking.paymentId) {
+    const paymentRef = db.collection('payments').doc(booking.paymentId);
+    const existing = await paymentRef.get();
+    const old = existing.data();
+    if (old?.provider === 'transfer_manual' && ['awaiting_transfer', 'paid', 'rejected'].includes(old.status)) {
+      return buildTransferInstruction({
+        bookingId,
+        amount: Number(old.amount) || Number(booking.total) || 0,
+        bankName: old.bankName || DEFAULT_BANK.bankName,
+        bankAccountNumber: old.bankAccountNumber || DEFAULT_BANK.bankAccountNumber,
+        bankAccountName: old.bankAccountName || DEFAULT_BANK.bankAccountName,
+        expiresAtMs: old.expiresAt?.toMillis?.() ?? Date.now() + 24 * 60 * 60 * 1000,
+      });
+    }
+    throw conflict('Pembayaran untuk booking ini sedang diproses. Tunggu sebentar lalu coba lagi.');
+  }
+
   const amount = Number(booking.total) || 0;
   if (amount <= 0) throw conflict('Total booking tidak valid untuk pembayaran.');
 
-  const response = await fetch(MIDTRANS_ENDPOINT, {
-    method: 'POST',
-    headers: { Authorization: midtransAuth(), 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      transaction_details: { order_id: orderId, gross_amount: amount },
-      item_details: [{ id: booking.packageId || bookingId, price: amount, quantity: 1, name: booking.packageName || 'Booking JepretAja' }],
-      customer_details: { first_name: actor.email?.split('@')[0] || 'Pelanggan', email: actor.email || undefined },
-      callbacks: { finish: `${process.env.APP_PUBLIC_URL || ''}/payment/${bookingId}/result` },
-    }),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result.token) {
-    throw new HttpError(502, 'midtrans-error', result.error_messages?.join(' ') || 'Midtrans gagal membuat transaksi.');
+  const settingsSnap = await db.collection('settings').doc('general').get();
+  const settings = settingsSnap.data() || {};
+  const bankName = (settings.payoutBankName || '').trim() || DEFAULT_BANK.bankName;
+  const bankAccountNumber = (settings.payoutAccountNumber || '').trim() || DEFAULT_BANK.bankAccountNumber;
+  const bankAccountName = (settings.payoutAccountName || '').trim() || DEFAULT_BANK.bankAccountName;
+
+  if (!bankAccountNumber || bankAccountNumber === '1234567890' || !bankAccountName || bankAccountName === 'PT JepretAja Indonesia') {
+    throw conflict('Rekening tujuan transfer manual belum dikonfigurasi. Hubungi admin untuk mengisi pengaturan pembayaran.');
   }
 
-  const payment = {
-    paymentId: paymentRef.id, bookingId, customerId: actor.uid, creatorId: booking.creatorId,
-    provider: 'midtrans', method: 'snap', orderId, amount,
-    snapToken: result.token, redirectUrl: result.redirect_url || null,
-    status: 'pending', expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    createdAt: FieldValue.serverTimestamp(),
-  };
-  await paymentRef.set(payment);
-  await bookingRef.update({ paymentId: paymentRef.id, updatedAt: FieldValue.serverTimestamp() });
+  const paymentRef = db.collection('payments').doc(`booking_${bookingId}`);
+  const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+  const instruction = buildTransferInstruction({
+    bookingId,
+    amount,
+    bankName,
+    bankAccountNumber,
+    bankAccountName,
+    expiresAtMs: expiresAt,
+  });
 
-  return { paymentId: paymentRef.id, orderId, amount, snapToken: result.token, redirectUrl: result.redirect_url || null, clientKey: process.env.MIDTRANS_CLIENT_KEY || '' };
+  await db.runTransaction(async (tx) => {
+    const latestBooking = await tx.get(bookingRef);
+    const latest = latestBooking.data();
+    if (!latest || latest.customerId !== actor.uid) throw forbidden('Booking ini bukan milik Anda.');
+    if (latest.status !== 'pending_payment') throw conflict(`Booking berstatus "${latest.status}", tidak menunggu pembayaran.`);
+
+    tx.set(paymentRef, {
+      paymentId: paymentRef.id,
+      bookingId,
+      customerId: actor.uid,
+      creatorId: latest.creatorId,
+      provider: 'transfer_manual',
+      method: 'bank_transfer',
+      amount,
+      uniqueCode: instruction.uniqueCode,
+      transferAmount: instruction.transferAmount,
+      bankName,
+      bankAccountNumber,
+      bankAccountName,
+      status: 'awaiting_transfer',
+      expiresAt: instruction.expiresAt,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    tx.update(bookingRef, {
+      paymentId: paymentRef.id,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  return {
+    paymentId: paymentRef.id,
+    bookingId,
+    amount,
+    uniqueCode: instruction.uniqueCode,
+    transferAmount: instruction.transferAmount,
+    bankName,
+    bankAccountNumber,
+    bankAccountName,
+    expiresAt: instruction.expiresAt,
+    instruction: instruction.instruction,
+    provider: 'transfer_manual',
+    status: 'awaiting_transfer',
+  };
 }

@@ -21,7 +21,10 @@ const KOSONG = {
 
 const TAB = [
   { id: 'semua', label: 'Semua' },
+  { id: 'pending_review', label: 'Menunggu Review' },
   { id: 'published', label: 'Tayang' },
+  { id: 'rejected', label: 'Ditolak' },
+  { id: 'hidden', label: 'Disembunyikan' },
 ];
 
 const KEBIJAKAN_KOMENTAR = [
@@ -63,7 +66,10 @@ export default function CreatorPosts() {
 
   const [tab, setTab] = useState('semua');
   const [mode, setMode] = useState('karya');
-  const [form, setForm] = useState(null); // null = tertutup
+  const [form, setForm] = useState(() => ({
+    ...KOSONG,
+    category: 'Wedding',
+  }));
   const [menyimpan, setMenyimpan] = useState(false);
   const [pesan, setPesan] = useState(null);
 
@@ -145,14 +151,14 @@ export default function CreatorPosts() {
           ...isi,
           creatorId: uid,
           creatorName: creatorProfile?.displayName || null,
-          status: 'published',
+          status: 'pending_review',
           moderationNote: null,
           metrics: { like: 0, comment: 0, save: 0, view: 0, share: 0 },
           createdAt: serverTimestamp(),
         });
-        setPesan({ tipe: 'sukses', teks: 'Karya terunggah dan langsung tayang.' });
+        setPesan({ tipe: 'sukses', teks: 'Karya dikirim untuk review moderator.' });
       }
-      setForm(null);
+      setForm({ ...KOSONG, category: kategori[0]?.name || kategori[0]?.id || '' });
     } catch (err) {
       setPesan({
         tipe: 'gagal',
@@ -182,196 +188,153 @@ export default function CreatorPosts() {
   };
 
   const mediaTabs = (
-    <div className="pill-tabs" style={{ marginBottom: 20 }}>
-      <button className={`pill-tab${mode === 'karya' ? ' active' : ''}`} onClick={() => setMode('karya')}>
+    <div className="creator-mode-switcher">
+      <button className={`creator-mode-btn ${mode === 'karya' ? 'active' : ''}`} onClick={() => setMode('karya')} type="button">
         Karya Explore
       </button>
-      <button className={`pill-tab${mode === 'portfolio' ? ' active' : ''}`} onClick={() => setMode('portfolio')}>
+      <button className={`creator-mode-btn ${mode === 'portfolio' ? 'active' : ''}`} onClick={() => setMode('portfolio')} type="button">
         Portfolio
       </button>
     </div>
   );
 
-  if (mode === 'portfolio') {
-    return (
-      <div>
-        {dialog}
-        <h1 className="page-title">Unggah Karya</h1>
-        {mediaTabs}
-        <CreatorPortfolio embedded />
+  const uploadCard = (
+    <div className="creator-upload-shell">
+      <header className="creator-upload-header">
+        <button type="button" className="creator-back-btn" aria-label="Kembali" onClick={() => window.history.back()}>←</button>
+        <h1>Creator Studio</h1>
+        <span className="creator-draft-badge" aria-label="Status draft">Draft</span>
+      </header>
+
+      <section className="creator-hero-card">
+        <div className="creator-hero-copy">
+          <h2>Publikasikan karya terbaikmu</h2>
+          <p>Atur media, cerita, dan detail booking dalam satualur yang rapi.</p>
+          <div className="creator-hero-pills">
+            <span className="creator-pill muted">• Belum ada media</span>
+            <span className="creator-pill primary">• Explore</span>
+          </div>
+        </div>
+      </section>
+
+      <div className="creator-upload-subheader">
+        <span>Antrian unggah</span>
       </div>
-    );
-  }
+
+      <div className="creator-upload-flow">
+        <span className="creator-flow-muted">Tersimpan dan tayang</span>
+        <button type="button" className="creator-link-btn" onClick={() => setPesan(null)}>Bersihkan pesan</button>
+      </div>
+
+      <section className="creator-media-section">
+        <div className="creator-section-head">
+          <h3>Media</h3>
+          <span>Pilih foto, video, atau ambil langsung dari kamera</span>
+        </div>
+
+        <div className="creator-media-dropzone">
+          <ImagePicker
+            value={form.media}
+            onChange={(media) => setForm({ ...form, media })}
+            multiple
+            max={8}
+            folder={`explore/${uid || 'creator'}`}
+            label="Media karya"
+            hint="Gunakan foto atau video dengan rasio 16:9."
+            izinkanVideo
+            onMediaTypeChange={(type) => setForm({ ...form, type })}
+          />
+        </div>
+      </section>
+
+      <div className="creator-footer-actions">
+        <button type="button" className="creator-footer-btn secondary" onClick={() => setPesan({ tipe: 'sukses', teks: 'Draft tersimpan di form ini. Lengkapi media dan caption sebelum publikasi.' })}>Simpan Draft</button>
+        <button type="submit" className="creator-footer-btn primary" form="creator-post-form">Publikasikan</button>
+      </div>
+    </div>
+  );
 
   return (
-    <div>
+    <div className="creator-shell">
       {dialog}
-      <h1 className="page-title">Unggah Karya</h1>
       {mediaTabs}
-      <p className="text-meta" style={{ marginBottom: 20 }}>
-        Karya yang Anda unggah ke Explore. Karya baru ditinjau admin dulu sebelum tayang di aplikasi.
-      </p>
 
-      {pesan && (
-        <div className={`card ${pesan.tipe === 'sukses' ? 'banner-success' : 'banner-danger'}`}>
-          <div className="msg">{pesan.teks}</div>
-        </div>
-      )}
-
-      <div className="grid grid-3 mb-lg">
-        <StatCard label="Karya Tayang" value={compactNumber(totalTayang)} delta={`${posts.length} total unggahan`} icon="image" tone="utama" />
-        <StatCard label="Total Suka" value={compactNumber(totalSuka)} icon="star" tone="peringatan" />
-        <StatCard label="Total Dilihat" value={compactNumber(totalDilihat)} icon="chart" tone="info" />
-      </div>
-
-      {form && (
-        <form className="card mb-lg" onSubmit={simpan}>
-          <div className="section-title">{form.id ? 'Ubah Karya' : 'Unggah Karya Baru'}</div>
-
-          <div className="mb-md">
-            <ImagePicker
-              label="Foto Karya"
-              multiple
-              max={10}
-              izinkanVideo
-              folder={`explore/${uid}`}
-              value={form.media}
-              onChange={(media) => setForm({ ...form, media })}
-              onMediaTypeChange={(type) => setForm((sebelumnya) => ({ ...sebelumnya, type }))}
-              hint="Pilih foto atau video dari perangkat. Media pertama menjadi sampul di feed."
-            />
-          </div>
-
-          <div className="mb-md">
-            <label className="field-label">Caption</label>
-            <textarea className="input" rows={3} value={form.caption}
-              placeholder="Ceritakan sedikit tentang karya ini."
-              onChange={(e) => setForm({ ...form, caption: e.target.value })} />
-          </div>
-
-          <div className="form-row mb-md">
-            <div style={{ flex: 1 }}>
-              <label className="field-label">Kategori</label>
-              {kategori.length > 0 ? (
-                <select className="input" value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                  <option value="">(tanpa kategori)</option>
-                  {kategori.map((k) => (
-                    <option key={k.id} value={k.name || k.id}>{k.name || k.id}</option>
-                  ))}
-                </select>
-              ) : (
-                <input className="input" value={form.category} placeholder="Wedding"
-                  onChange={(e) => setForm({ ...form, category: e.target.value })} />
-              )}
-            </div>
-            <div style={{ flex: 1 }}>
-              <label className="field-label">Lokasi</label>
-              <input className="input" value={form.location} placeholder="Yogyakarta"
-                onChange={(e) => setForm({ ...form, location: e.target.value })} />
-            </div>
-          </div>
-
-          <div className="mb-md">
-            <label className="field-label">Tagar (pisahkan koma)</label>
-            <input className="input" value={form.tags} placeholder="prewedding, outdoor, golden hour"
-              onChange={(e) => setForm({ ...form, tags: e.target.value })} />
-          </div>
-
-          <div className="form-row mb-md">
-            <div style={{ flex: 1 }}>
-              <label className="field-label">Kebijakan Komentar</label>
-              <select className="input" value={form.commentPolicy}
-                onChange={(e) => setForm({ ...form, commentPolicy: e.target.value })}>
-                {KEBIJAKAN_KOMENTAR.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <input type="checkbox" checked={form.allowSave}
-              onChange={(e) => setForm({ ...form, allowSave: e.target.checked })} />
-            Izinkan orang menyimpan karya ini
-          </label>
-
-          {form.id && form.status === 'published' && (
-            <p className="text-meta" style={{ marginTop: 0 }}>
-              Karya ini sudah tayang — perubahan langsung terlihat di aplikasi tanpa ditinjau ulang.
-            </p>
-          )}
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-primary" type="submit" disabled={menyimpan}>
-              {menyimpan ? 'Menyimpan...' : form.id ? 'Simpan Perubahan' : 'Unggah Karya'}
-            </button>
-            <button className="btn btn-outline" type="button" onClick={() => setForm(null)}>Batal</button>
-          </div>
-        </form>
-      )}
-
-      <div className="flex-between mb-md">
-        <div className="pill-tabs" style={{ marginBottom: 0 }}>
-          {TAB.map((t) => (
-            <button key={t.id} className={`pill-tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>
-              {t.label}
-              {t.id !== 'semua' && ` (${jumlahPerStatus[t.id] || 0})`}
-            </button>
-          ))}
-        </div>
-        {!form && <button className="btn btn-primary" onClick={bukaBaru}>+ Unggah Karya</button>}
-      </div>
-
-      {loading ? (
-        <div className="loading">Memuat karya...</div>
-      ) : error ? (
-        <ErrorState error={error} onRetry={() => window.location.reload()} />
-      ) : daftar.length === 0 ? (
-        <EmptyState
-          glyph="▦"
-          title={tab === 'semua' ? 'Belum ada karya yang diunggah' : 'Tidak ada karya pada status ini'}
-          hint={tab === 'semua' ? 'Tekan "Unggah Karya" untuk menampilkan hasil kerja Anda di Explore.' : undefined}
-        />
+      {mode === 'portfolio' ? (
+        <CreatorPortfolio embedded />
       ) : (
-        <div className="grid grid-3">
-          {daftar.map((p) => (
-            <div className="card media-card" key={p.id}>
-              {p.mediaUrls?.[0] ? (
-                p.type === 'video' ? <video className="media-thumb" src={p.mediaUrls[0]} controls preload="metadata" /> : <img className="media-thumb" src={p.thumbnailUrl || p.mediaUrls[0]} alt=""
-                  onError={(e) => { e.target.style.visibility = 'hidden'; }} />
-              ) : (
-                <div className="media-thumb" style={{ display: 'grid', placeItems: 'center', color: 'var(--text-secondary)' }}>
-                  tanpa media
+        <>
+          <form id="creator-post-form" onSubmit={simpan} className="creator-form-modern">
+            {uploadCard}
+
+            {pesan && (
+              <div className={`card ${pesan.tipe === 'sukses' ? 'banner-success' : 'banner-danger'} creator-message-wrap`}>
+                <div className="msg">{pesan.teks}</div>
+              </div>
+            )}
+
+            <div className="creator-extra-form">
+              <div className="mb-md">
+                <label className="field-label">Caption</label>
+                <textarea className="input" rows={3} value={form.caption}
+                  placeholder="Ceritakan sedikit tentang karya ini."
+                  onChange={(e) => setForm({ ...form, caption: e.target.value })} />
+              </div>
+
+              <div className="form-row mb-md creator-form-row">
+                <div style={{ flex: 1 }}>
+                  <label className="field-label">Kategori</label>
+                  {kategori.length > 0 ? (
+                    <select className="input" value={form.category}
+                      onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                      <option value="">(tanpa kategori)</option>
+                      {kategori.map((k) => (
+                        <option key={k.id} value={k.name || k.id}>{k.name || k.id}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input className="input" value={form.category} placeholder="Wedding"
+                      onChange={(e) => setForm({ ...form, category: e.target.value })} />
+                  )}
                 </div>
-              )}
-
-              <div className="media-meta">
-                <StatusBadge status={p.status} />
-                <span className="text-meta">{(p.mediaUrls || []).length} {p.type === 'video' ? 'video' : 'foto'}</span>
-              </div>
-
-              <div className="media-caption">{p.caption || '(tanpa caption)'}</div>
-              <div className="text-meta" style={{ marginBottom: 8 }}>
-                {p.category || 'Tanpa kategori'} · {formatDateTime(p.createdAt)}
-              </div>
-
-              {/* Alasan penolakan ditulis admin khusus untuk dibaca di sini. */}
-              {p.moderationNote && (
-                <div className="banner-danger" style={{ padding: '10px 12px', borderRadius: 'var(--radius-md)', marginBottom: 10 }}>
-                  <div className="msg"><strong>Catatan admin:</strong> {p.moderationNote}</div>
+                <div style={{ flex: 1 }}>
+                  <label className="field-label">Lokasi</label>
+                  <input className="input" value={form.location} placeholder="Yogyakarta"
+                    onChange={(e) => setForm({ ...form, location: e.target.value })} />
                 </div>
-              )}
-
-              <div className="text-meta" style={{ marginBottom: 10 }}>
-                ♥ {p.metrics?.like ?? 0} · 💬 {p.metrics?.comment ?? 0} · 👁 {p.metrics?.view ?? 0}
               </div>
 
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-outline btn-sm" onClick={() => bukaUbah(p)}>Ubah</button>
-                <button className="btn btn-danger btn-sm" onClick={() => hapus(p)}>Hapus</button>
+              <div className="mb-md">
+                <label className="field-label">Tagar (pisahkan koma)</label>
+                <input className="input" value={form.tags} placeholder="prewedding, outdoor, golden hour"
+                  onChange={(e) => setForm({ ...form, tags: e.target.value })} />
               </div>
+
+              <div className="form-row mb-md creator-form-row">
+                <div style={{ flex: 1 }}>
+                  <label className="field-label">Kebijakan Komentar</label>
+                  <select className="input" value={form.commentPolicy}
+                    onChange={(e) => setForm({ ...form, commentPolicy: e.target.value })}>
+                    {KEBIJAKAN_KOMENTAR.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <label className="field-label creator-checkbox" style={{ marginBottom: 16 }}>
+                <input type="checkbox" checked={form.allowSave}
+                  onChange={(e) => setForm({ ...form, allowSave: e.target.checked })} />
+                Izinkan orang menyimpan karya ini
+              </label>
             </div>
-          ))}
-        </div>
+          </form>
+
+          <div className="creator-grid-summary">
+            <div className="grid grid-3 mb-lg creator-stats">
+              <StatCard label="Karya Tayang" value={compactNumber(totalTayang)} delta={`${posts.length} total unggahan`} icon="image" tone="utama" />
+              <StatCard label="Total Suka" value={compactNumber(totalSuka)} icon="star" tone="peringatan" />
+              <StatCard label="Total Dilihat" value={compactNumber(totalDilihat)} icon="chart" tone="info" />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
