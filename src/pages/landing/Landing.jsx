@@ -125,8 +125,9 @@ export default function Landing() {
             </span>
           </Link>
           <nav className="landing-nav">
-            <a href="#panduan">Panduan Penggunaan</a>
+            <Link to="/panduan">Panduan Penggunaan</Link>
             <a href="#bantuan">Bantuan IT</a>
+            <a className="btn btn-download" href={APK_DOWNLOAD_URL} download>Unduh APK</a>
             <Link className="btn btn-primary" to="/login">Masuk ke Dashboard</Link>
           </nav>
         </div>
@@ -146,7 +147,7 @@ export default function Landing() {
             </p>
             <div className="landing-cta">
               <Link className="btn btn-primary btn-lg" to="/login">Masuk ke Dashboard <span aria-hidden="true">-&gt;</span></Link>
-              <a className="btn btn-ghost btn-lg" href="#panduan">Jelajahi platform</a>
+              <a className="btn btn-download btn-lg" href={APK_DOWNLOAD_URL} download>Unduh aplikasi Android</a>
             </div>
             <div className="landing-hero-note"><span className="landing-note-check">&#10003;</span> Aman, terukur, dan siap bertumbuh bersama tim Anda</div>
           </div>
@@ -261,30 +262,6 @@ export default function Landing() {
           </aside>
         </div>
 
-        {/* ---------------- Panduan Penggunaan ---------------- */}
-        <section className="landing-panel landing-guide" id="panduan">
-          <div className="landing-panel-head">
-            <h2 className="landing-panel-title">Panduan Penggunaan</h2>
-          </div>
-          <ol className="guide-list">
-            <li>
-              <strong>Masuk dengan akun admin.</strong> Gunakan email dan kata sandi yang telah
-              didaftarkan. Akun yang belum terdaftar sebagai admin atau creator akan ditolak.
-            </li>
-            <li>
-              <strong>Tinjau Dashboard.</strong> Ringkasan pengguna, pemesanan aktif, nilai transaksi,
-              serta sengketa yang perlu ditinjau tersedia di halaman pertama.
-            </li>
-            <li>
-              <strong>Kerjakan antrean yang menunggu.</strong> Verifikasi transfer masuk, pengajuan
-              verifikasi creator, permintaan penarikan dana, dan moderasi konten.
-            </li>
-            <li>
-              <strong>Setiap tindakan tercatat.</strong> Perubahan status, persetujuan dana, dan
-              keputusan sengketa tersimpan di Audit Logs beserta identitas pelakunya.
-            </li>
-          </ol>
-        </section>
       </main>
 
       <footer className="landing-footer">

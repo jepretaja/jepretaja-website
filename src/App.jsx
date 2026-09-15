@@ -57,6 +57,7 @@ const NotFound = lazy(() => import('./pages/notfound/NotFound'));
 const Privacy = lazy(() => import('./pages/legal/Privacy'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
 const DeleteAccount = lazy(() => import('./pages/legal/DeleteAccount'));
+const UserGuide = lazy(() => import('./pages/guide/UserGuide'));
 
 const CreatorHome = lazy(() => import('./pages/creatorportal/CreatorHome'));
 const CreatorProfile = lazy(() => import('./pages/creatorportal/CreatorProfile'));
@@ -103,6 +104,7 @@ export default function App() {
           <Route path="/privasi" element={<Lazy><Privacy /></Lazy>} />
           <Route path="/syarat" element={<Lazy><Terms /></Lazy>} />
           <Route path="/hapus-akun" element={<Lazy><DeleteAccount /></Lazy>} />
+          <Route path="/panduan" element={<Lazy><UserGuide /></Lazy>} />
           <Route path="/login" element={<Login />} />
           <Route path="/creator" element={<CreatorLayout />}>
             <Route index element={<Lazy><CreatorHome /></Lazy>} />

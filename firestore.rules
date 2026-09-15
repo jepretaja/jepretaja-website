@@ -123,7 +123,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if signedIn()
         && request.resource.data.creatorId == uid()
-        && request.resource.data.status == 'published';
+        && request.resource.data.status == 'pending_review';
       allow update: if
         (signedIn() && resource.data.creatorId == uid() && noProtectedFields(['moderationStatus', 'status']))
         // Like, save, komentar, share, dan view semuanya menaikkan penghitung di

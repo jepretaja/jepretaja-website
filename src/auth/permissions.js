@@ -21,6 +21,7 @@ export const ROLE_PERMISSIONS = {
     'view_users', 'manage_users', 'verify_creator', 'moderate_content',
     'manage_booking', 'manage_payment', 'manage_escrow', 'manage_withdrawal',
     'manage_refund', 'manage_dispute', 'manage_promotion', 'view_analytics',
+    'manage_settings', 'manage_admin',
   ],
   finance_admin: ['view_users', 'manage_payment', 'manage_escrow', 'manage_withdrawal', 'manage_refund', 'view_analytics'],
   moderator: ['view_users', 'verify_creator', 'moderate_content', 'manage_booking'],

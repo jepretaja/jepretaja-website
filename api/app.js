@@ -7,6 +7,7 @@ import { createPaymentOrder } from './_lib/actions/appPayment.js';
 import { blockAvailabilityDate, unblockAvailabilityDate } from './_lib/actions/appAvailability.js';
 import { requestWithdrawal } from './_lib/actions/appWallet.js';
 import { notifyInteraction } from './_lib/actions/appNotify.js';
+import { becomeCreator } from './_lib/actions/appCreator.js';
 
 /**
  * Satu Serverless Function untuk semua aksi yang dipanggil aplikasi Android.
@@ -36,6 +37,7 @@ const HANDLERS = {
   unblockAvailabilityDate,
   requestWithdrawal,
   notifyInteraction,
+  becomeCreator,
 };
 
 export default async function handler(req, res) {
