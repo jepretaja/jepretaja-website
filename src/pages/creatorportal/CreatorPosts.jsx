@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { PATHS } from '../../firebase/paths';
@@ -72,6 +72,17 @@ export default function CreatorPosts() {
   }));
   const [menyimpan, setMenyimpan] = useState(false);
   const [pesan, setPesan] = useState(null);
+
+  const draftKey = uid ? `creator-post-draft-${uid}` : null;
+  useEffect(() => {
+    if (!draftKey) return;
+    try {
+      const tersimpan = JSON.parse(localStorage.getItem(draftKey) || 'null');
+      if (tersimpan && !form.id) setForm((saatIni) => ({ ...saatIni, ...tersimpan }));
+    } catch {
+      localStorage.removeItem(draftKey);
+    }
+  }, [draftKey]);
 
   const daftar = useMemo(() => {
     const urut = byNewest(posts);
@@ -187,6 +198,13 @@ export default function CreatorPosts() {
     }
   };
 
+  const simpanDraft = () => {
+    if (!draftKey) return;
+    const { id, status, ...draft } = form;
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+    setPesan({ tipe: 'sukses', teks: 'Draft tersimpan di perangkat ini.' });
+  };
+
   const mediaTabs = (
     <div className="creator-mode-switcher">
       <button className={`creator-mode-btn ${mode === 'karya' ? 'active' : ''}`} onClick={() => setMode('karya')} type="button">
@@ -248,7 +266,7 @@ export default function CreatorPosts() {
       </section>
 
       <div className="creator-footer-actions">
-        <button type="button" className="creator-footer-btn secondary" onClick={() => setPesan({ tipe: 'sukses', teks: 'Draft tersimpan di form ini. Lengkapi media dan caption sebelum publikasi.' })}>Simpan Draft</button>
+        <button type="button" className="creator-footer-btn secondary" onClick={simpanDraft}>Simpan Draft</button>
         <button type="submit" className="creator-footer-btn primary" form="creator-post-form">Publikasikan</button>
       </div>
     </div>
@@ -333,6 +351,32 @@ export default function CreatorPosts() {
               <StatCard label="Total Suka" value={compactNumber(totalSuka)} icon="star" tone="peringatan" />
               <StatCard label="Total Dilihat" value={compactNumber(totalDilihat)} icon="chart" tone="info" />
             </div>
+            <div className="section-title creator-posts-title">Unggahan Saya</div>
+            {daftar.length === 0 ? (
+              <EmptyState title="Belum ada unggahan" hint="Karya yang dikirim akan muncul di sini beserta status review-nya." />
+            ) : (
+              <div className="grid grid-3 creator-post-list">
+                {daftar.map((post) => (
+                  <article className="card creator-post-card" key={post.id}>
+                    {post.thumbnailUrl || post.mediaUrls?.[0] ? (
+                      <img src={post.thumbnailUrl || post.mediaUrls[0]} alt="" className="creator-post-thumb" />
+                    ) : null}
+                    <div className="creator-post-card-head">
+                      <strong>{post.caption || 'Tanpa caption'}</strong>
+                      <StatusBadge status={post.status} />
+                    </div>
+                    <div className="text-meta">{post.category || 'Tanpa kategori'} · {post.mediaUrls?.length || 0} media</div>
+                    {post.moderationNote && (
+                      <div className="creator-moderation-note">Catatan admin: {post.moderationNote}</div>
+                    )}
+                    <div className="creator-post-card-actions">
+                      <button className="btn btn-outline btn-sm" type="button" onClick={() => bukaUbah(post)}>Ubah</button>
+                      <button className="btn btn-danger btn-sm" type="button" onClick={() => hapus(post)}>Hapus</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

@@ -27,6 +27,7 @@ const GROUPS = [
     label: 'Etalase',
     items: [
       { to: '/creator/packages', label: 'Paket Jasa', icon: 'box' },
+      { to: '/creator/portfolio', label: 'Portfolio', icon: 'image' },
       { to: '/creator/posts', label: 'Unggahan Saya', icon: 'upload' },
       { to: '/creator/reviews', label: 'Ulasan', icon: 'star' },
     ],
