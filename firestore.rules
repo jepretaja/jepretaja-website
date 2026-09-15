@@ -294,7 +294,13 @@ service cloud.firestore {
     }
 
     match /chats/{chatId} {
-      allow read: if (isChatMember(resource.data) && chatNotBlocked(resource.data)) || isAdmin();
+      // Query portal creator menyaring langsung dengan creatorId == uid().
+      // Cabang owner ini sengaja eksplisit agar Firestore dapat membuktikan
+      // izin query; pengecekan blokir dinamis tidak dapat dibuktikan oleh
+      // query dan sebelumnya membuat halaman Pesan gagal permission-denied.
+      allow read: if isAdmin()
+                  || (signedIn() && resource.data.creatorId == uid())
+                  || (signedIn() && resource.data.customerId == uid() && chatNotBlocked(resource.data));
       allow create: if isChatMember(request.resource.data) && chatNotBlocked(request.resource.data);
       // Pesan terakhir & waktu diperbarui setiap kali ada pesan baru.
       allow update: if isChatMember(resource.data)
